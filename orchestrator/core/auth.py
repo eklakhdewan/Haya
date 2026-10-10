@@ -1,7 +1,7 @@
 """JWT authentication primitives for the HINA API.
 
 Tokens are issued by a trusted identity component, not by public API endpoints.
-Use short-lived HS256 tokens and rotate HINA_JWT_SECRET through deployment secrets.
+Use short-lived HS256 tokens and rotate JWT_SECRET through deployment secrets.
 """
 from __future__ import annotations
 
