@@ -1,0 +1,71 @@
+"""Configuration management for Hina using Pydantic Settings."""
+
+from enum import Enum
+from typing import Literal
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Environment(str, Enum):
+    DEVELOPMENT = "development"
+    STAGING = "staging"
+    PRODUCTION = "production"
+    TESTING = "testing"
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    # General
+    environment: Environment = Environment.DEVELOPMENT
+    log_level: str = "INFO"
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
+
+    # LLM Provider
+    google_api_key: str = Field(default="", description="Google Gemini API key")
+    llm_model: str = Field(default="gemini-3.8-flash", description="Default LLM model identifier")
+
+    # Voice / STT / TTS
+    deepgram_api_key: str = Field(default="", description="Deepgram API key")
+    deepgram_stt_model: str = Field(default="flux-general-en", description="Deepgram streaming STT model")
+    tts_provider: str = Field(default="deepgram", description="Streaming TTS provider")
+
+    # Memory Infrastructure
+    qdrant_url: str = Field(default="http://localhost:6333", description="Qdrant endpoint")
+    qdrant_api_key: str = Field(default="", description="Qdrant API key if secured")
+    neo4j_uri: str = Field(default="bolt://localhost:7687", description="Neo4j connection URI")
+    neo4j_username: str = Field(default="neo4j", description="Neo4j username")
+    neo4j_password: str = Field(default="change-me", description="Neo4j password")
+    redis_url: str = Field(default="redis://localhost:6379/0", description="Redis connection URL")
+
+    # Code Execution Sandbox
+    e2b_api_key: str = Field(default="", description="E2B API key for microVM sandboxes")
+    sandbox_network: Literal["enabled", "disabled"] = "disabled"
+    sandbox_timeout_ms: int = 5000
+    sandbox_max_repairs: int = 2
+
+    # Security & Tokens
+    jwt_secret: str = Field(default="insecure-dev-secret-replace-in-production", description="JWT signing secret")
+    device_token_ttl_seconds: int = 300
+    action_confirmation_ttl_seconds: int = 120
+
+    # Observability
+    otel_service_name: str = "hina-orchestrator"
+    otel_exporter_otlp_endpoint: str = "http://localhost:4317"
+
+
+# Cached settings instance factory
+_settings_instance: Settings | None = None
+
+
+def get_settings() -> Settings:
+    """Retrieve or create application settings."""
+    global _settings_instance
+    if _settings_instance is None:
+        _settings_instance = Settings()
+    return _settings_instance

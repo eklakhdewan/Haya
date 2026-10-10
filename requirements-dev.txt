@@ -1,0 +1,13 @@
+-r requirements.txt
+
+pytest>=8.4,<9
+pytest-asyncio>=1.2,<2
+pytest-cov>=6.2,<7
+pytest-mock>=3.14,<4
+ruff>=0.13,<1
+mypy>=1.17,<2
+types-jsonschema>=4.25,<5
+pre-commit>=4.3,<5
+bandit>=1.8,<2
+pip-audit>=2.9,<3
+locust>=2.39,<3

@@ -1,0 +1,50 @@
+{"text": "Hello, how are you today?", "expected_route": "conversation", "expected_confirmation": false}
+{"text": "What is the capital of France?", "expected_route": "conversation", "expected_confirmation": false}
+{"text": "Can you explain quantum computing simply?", "expected_route": "conversation", "expected_confirmation": false}
+{"text": "Tell me a joke about programming.", "expected_route": "conversation", "expected_confirmation": false}
+{"text": "Who wrote The Lord of the Rings?", "expected_route": "conversation", "expected_confirmation": false}
+{"text": "Good morning Hina!", "expected_route": "conversation", "expected_confirmation": false}
+{"text": "What are you capable of doing?", "expected_route": "conversation", "expected_confirmation": false}
+{"text": "Why is the sky blue?", "expected_route": "conversation", "expected_confirmation": false}
+{"text": "Give me some advice on time management.", "expected_route": "conversation", "expected_confirmation": false}
+{"text": "Thank you for the help, goodbye.", "expected_route": "conversation", "expected_confirmation": false}
+{"text": "Please remember that my favorite color is dark teal.", "expected_route": "memory", "expected_confirmation": false}
+{"text": "Store this note: I am working on the HINA companion project.", "expected_route": "memory", "expected_confirmation": false}
+{"text": "Recall what I told you yesterday about Alice.", "expected_route": "memory", "expected_confirmation": false}
+{"text": "What did I say about my dietary restrictions?", "expected_route": "memory", "expected_confirmation": false}
+{"text": "Remember that Bob is the lead engineer at Acme.", "expected_route": "memory", "expected_confirmation": false}
+{"text": "Forget my old home address.", "expected_route": "memory", "expected_confirmation": false}
+{"text": "Update my preference: I now prefer Python over Rust.", "expected_route": "memory", "expected_confirmation": false}
+{"text": "Do you remember who I met with on Friday?", "expected_route": "memory", "expected_confirmation": false}
+{"text": "Save the fact that my dog's name is Barnaby.", "expected_route": "memory", "expected_confirmation": false}
+{"text": "Recall my project milestones for Q4.", "expected_route": "memory", "expected_confirmation": false}
+{"text": "Calculate 45 * 120 + 384", "expected_route": "tool", "expected_confirmation": false}
+{"text": "What time is it in UTC right now?", "expected_route": "tool", "expected_confirmation": false}
+{"text": "Calculate (100 / 4) * 2.5", "expected_route": "tool", "expected_confirmation": false}
+{"text": "What is the current time?", "expected_route": "tool", "expected_confirmation": false}
+{"text": "Calculate 2 ** 10", "expected_route": "tool", "expected_confirmation": false}
+{"text": "Search web for recent breakthroughs in fusion energy.", "expected_route": "tool", "expected_confirmation": false}
+{"text": "Calculate 15 % 4", "expected_route": "tool", "expected_confirmation": false}
+{"text": "Search web: LiveKit WebRTC agent documentation", "expected_route": "tool", "expected_confirmation": false}
+{"text": "Calculate ((25 + 75) / 2) * 5", "expected_route": "tool", "expected_confirmation": false}
+{"text": "Check the current time.", "expected_route": "tool", "expected_confirmation": false}
+{"text": "Write a python script to parse JSON lines.", "expected_route": "coder", "expected_confirmation": false}
+{"text": "Debug this python function that throws IndexError.", "expected_route": "coder", "expected_confirmation": false}
+{"text": "Run this program to generate a Fibonacci sequence.", "expected_route": "coder", "expected_confirmation": false}
+{"text": "Write code to sort a list of dictionaries by key.", "expected_route": "coder", "expected_confirmation": false}
+{"text": "Execute code to benchmark sorting algorithms.", "expected_route": "coder", "expected_confirmation": false}
+{"text": "Write a python script that connects to an SQLite database.", "expected_route": "coder", "expected_confirmation": false}
+{"text": "Create a function to calculate cosine similarity.", "expected_route": "coder", "expected_confirmation": false}
+{"text": "Fix this code: while True print('hello')", "expected_route": "coder", "expected_confirmation": false}
+{"text": "Write code to validate email addresses with regex.", "expected_route": "coder", "expected_confirmation": false}
+{"text": "Execute code to test matrix multiplication.", "expected_route": "coder", "expected_confirmation": false}
+{"text": "Send SMS to John saying I will be 10 minutes late.", "expected_route": "device", "expected_confirmation": true}
+{"text": "Make a call to Mom on speakerphone.", "expected_route": "device", "expected_confirmation": true}
+{"text": "Open app Spotify on my phone.", "expected_route": "device", "expected_confirmation": false}
+{"text": "Send SMS: 'Package arrived' to +15551234567.", "expected_route": "device", "expected_confirmation": true}
+{"text": "Turn on wifi in my device system settings.", "expected_route": "device", "expected_confirmation": true}
+{"text": "Make a call to customer support.", "expected_route": "device", "expected_confirmation": true}
+{"text": "Open app Camera.", "expected_route": "device", "expected_confirmation": false}
+{"text": "Send SMS to Alice with the address.", "expected_route": "device", "expected_confirmation": true}
+{"text": "Change setting on device: toggle bluetooth.", "expected_route": "device", "expected_confirmation": true}
+{"text": "Send text message to David about dinner.", "expected_route": "device", "expected_confirmation": true}

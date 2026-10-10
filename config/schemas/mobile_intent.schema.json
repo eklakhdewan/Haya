@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hina.local/schemas/mobile_intent.schema.json",
+  "title": "Hina Mobile Intent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["intent_id", "device_id", "intent_type", "payload", "issued_at", "expires_at", "nonce"],
+  "properties": {
+    "intent_id": {"type": "string", "format": "uuid"},
+    "device_id": {"type": "string", "format": "uuid"},
+    "intent_type": {
+      "type": "string",
+      "enum": ["SEND_SMS", "MAKE_CALL", "OPEN_APP", "SYSTEM_SETTING"]
+    },
+    "payload": {"type": "object"},
+    "issued_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "nonce": {"type": "string", "minLength": 16},
+    "confirmation_required": {"type": "boolean"},
+    "confirmation_token": {"type": ["string", "null"]}
+  }
+}

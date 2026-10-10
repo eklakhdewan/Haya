@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hina"
+version = "0.1.0"
+description = "Hina autonomous real-time AI companion"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi>=0.116,<1",
+  "uvicorn[standard]>=0.35,<1",
+  "pydantic>=2.11,<3",
+  "pydantic-settings>=2.10,<3",
+  "httpx>=0.28,<1",
+  "orjson>=3.10,<4",
+  "python-dotenv>=1.1,<2",
+  "langgraph>=0.6,<1",
+  "langchain-core>=0.3,<2",
+  "google-genai>=1.30,<2",
+  "deepgram-sdk>=5,<6",
+  "qdrant-client>=1.15,<2",
+  "neo4j>=6,<7",
+  "redis>=6,<7",
+  "numpy>=2.2,<3",
+  "sentence-transformers>=5,<6",
+  "jsonschema>=4.25,<5",
+  "tenacity>=9,<10",
+  "opentelemetry-api>=1.36,<2",
+  "opentelemetry-sdk>=1.36,<2",
+  "opentelemetry-exporter-otlp>=1.36,<2",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E","F","I","B","UP","SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

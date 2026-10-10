@@ -1,0 +1,167 @@
+Listed directory HINA
+Viewed README.md:1-106
+Listed directory docs
+Listed directory config
+Listed directory schemas
+Listed directory memory_core
+Listed directory orchestrator
+Listed directory tests
+Viewed PROJECT_BRIEF.md:1-84
+Viewed PRD.md:1-94
+Viewed SYSTEM_ARCHITECTURE.md:1-151
+Viewed TECH_STACK.md:1-74
+Viewed REPO_STRUCTURE.md:1-49
+Viewed ROADMAP.md:1-136
+Viewed SECURITY.md:1-90
+Viewed API_SPEC.md:1-156
+Viewed DATA_SPEC.md:1-85
+Viewed main.py:1-13
+Viewed test_health.py:1-11
+Viewed pyproject.toml:1-49
+Viewed docker-compose.yml:1-33
+Viewed mobile_intent.schema.json:1-23
+Viewed DECISIONS.md:1-46
+Viewed CODING_RULES.md:1-53
+Viewed EVALUATION_PLAN.md:1-91
+Viewed TESTING_STRATEGY.md:1-92
+Viewed UI_SPEC.md:1-87
+Viewed .env.example:1-37
+Viewed START_HERE.md:1-50
+Viewed ACQUISITION_PLAN.md:1-49
+Viewed CHANGELOG.md:1-32
+Viewed FORMS.md:1-110
+
+# Project Overview: HINA (Autonomous Real-Time AI Companion)
+
+**HINA** is an engineering specification and early-stage implementation for a **voice-first, autonomous AI companion**. Rather than being a simple chatbot wrapper with a microphone, HINA is designed as a distributed, multi-agent system combining real-time bidirectional voice transport, persistent hybrid memory (vector + knowledge graph), secure isolated sandbox execution, and policy-governed Android device integration.
+
+---
+
+## 1. Core Architectural Pillars
+
+```
+                     ┌──────────────────────┐
+                     │   User Audio / App   │
+                     └──────────┬───────────┘
+                                │ WebRTC
+                                ▼
+                     ┌──────────────────────┐
+                     │ Realtime Transport   │ (e.g., LiveKit Gateway)
+                     │ Streaming STT / VAD  │ (Deepgram Flux / Turn Detection)
+                     └──────────┬───────────┘
+                                │
+                                ▼
+                     ┌──────────────────────┐
+                     │ Python Orchestrator  │ (FastAPI + LangGraph)
+                     │  - Supervisor Router │
+                     │  - Critic & Policies │
+                     └──────┬─────┬─────┬───┘
+          ┌─────────────────┘     │     └────────────────┐
+          ▼                       ▼                      ▼
+┌──────────────────┐    ┌──────────────────┐   ┌──────────────────┐
+│  Hybrid Memory   │    │  Secure Sandbox  │   │  Android Bridge  │
+│ Qdrant (Vectors) │    │  E2B (MicroVM)   │   │  Typed Intents   │
+│ Neo4j (Graph)    │    │  Zero Host Exec  │   │  Human Approval  │
+│ Redis (Sessions) │    └──────────────────┘   └──────────────────┘
+└──────────────────┘
+```
+
+The system is defined across core documentation files:
+- [README.md](file:///d:/Projects/HINA/README.md) & [PROJECT_BRIEF.md](file:///d:/Projects/HINA/PROJECT_BRIEF.md): Mission, scope, and engineering principles.
+- [SYSTEM_ARCHITECTURE.md](file:///d:/Projects/HINA/SYSTEM_ARCHITECTURE.md): Service boundaries and data pipelines.
+- [AGENTS.md](file:///d:/Projects/HINA/AGENTS.md): Agent topology and contractual input/output definitions.
+- [SECURITY.md](file:///d:/Projects/HINA/SECURITY.md): Threat matrix and boundary controls.
+- [DECISIONS.md](file:///d:/Projects/HINA/DECISIONS.md): Architectural Decision Records (ADRs).
+
+---
+
+## 2. Multi-Agent Topology
+
+HINA divides agent responsibilities using a supervisor pattern ([AGENTS.md](file:///d:/Projects/HINA/AGENTS.md)):
+
+1. **Supervisor (Router)**: Classifies user intent (`conversation`, `memory`, `tool`, `coder`, `device`), enforces policies, and caps execution loops. Does **not** execute privileged operations directly.
+2. **Conversation Agent**: Manages natural conversational flow and state.
+3. **Memory Agent**: Extracts candidate entities (`Person`, `Preference`, `Project`, `Event`, `Organization`, `Skill`, `Relationship`) with confidence scores, turn timestamps, and explicit provenance.
+4. **Tool Agent**: Dispatches calls to registered tools against strict schemas and risk ratings.
+5. **Coder Agent**: Generates code, runs static security policy checks, triggers sandbox execution, inspects stdout/stderr, and executes up to two automated self-repair attempts.
+6. **Device Agent**: Formulates typed mobile intents without making direct Android OS calls.
+7. **Critic**: Evaluates output groundedness, tool result consistency, policy compliance, memory contamination, and detects missing user confirmations.
+
+---
+
+## 3. Key Features & Capabilities
+
+### 🎙️ Voice-First Realtime Interaction
+- **Bidirectional Streaming Audio**: Built on WebRTC transports (LiveKit baseline).
+- **Turn Detection & Barge-In**: Real-time speech interruption handling that cuts off TTS playback immediately when the user speaks.
+- **Sub-500ms Perceived Latency Target**: Streaming STT (Deepgram Flux), parallel retrieval, and streaming LLM/TTS outputs.
+
+### 🧠 Persistent Hybrid Memory
+- **Dual-Layer Retrieval**:
+  - **Qdrant**: Hybrid dense + sparse embeddings with Reciprocal Rank Fusion (RRF) for semantic similarity.
+  - **Neo4j**: Graph database mapping relational entities (`:User -[:WORKS_ON]-> :Project -[:USES]-> :Technology`) for multi-hop graph queries.
+- **Session Cache**: Redis for ephemeral conversation state, token revocation, and queues.
+- **Auditability & Provenance**: Every durable fact is linked to a source turn ID and timestamp. Deletions propagate across canonical stores, vectors, and graph edges.
+
+### 🛡️ Isolated Sandboxed Execution
+- **Zero Host Execution**: Arbitrary code execution occurs only inside isolated microVM sandboxes (e.g., E2B).
+- **Network & Resource Limits**: Network disabled by default, strict execution timeouts (default 5000 ms), memory/CPU quotas, and stdout/stderr output caps.
+
+### 📱 Controlled Android Device Bridge
+- **Schema-Validated Intents**: Validated against [mobile_intent.schema.json](file:///d:/Projects/HINA/config/schemas/mobile_intent.schema.json).
+- **Bounded Actions**: Allowed actions include `OPEN_APP`, `SYSTEM_SETTING`, `SEND_SMS`, and `MAKE_CALL`.
+- **Human Approval Gates**: High-risk actions (e.g., SMS, phone calls, sensitive settings) require explicit user approval via a confirmation token with short TTLs.
+
+### 📊 Developer Dashboard & Observability
+- **Distributed Tracing**: OpenTelemetry traces and Prometheus metrics across all agent turns.
+- **Inspection UI**: Next.js dashboard planned for viewing real-time latency timelines, memory graph explorers, action audits, and sandbox consoles ([UI_SPEC.md](file:///d:/Projects/HINA/UI_SPEC.md)).
+
+---
+
+## 4. Technology Stack
+
+| Layer | Selected Technology | Purpose |
+|---|---|---|
+| **Orchestrator Backend** | Python 3.12, FastAPI, Pydantic, LangGraph | Core business logic, routing, agent workflows |
+| **Primary LLM** | Google Gemini 3.8 Flash | Low-latency agentic reasoning & function calling |
+| **Realtime Transport** | LiveKit (managed WebRTC) | Low-latency audio & data streaming |
+| **Speech-to-Text (STT)** | Deepgram Flux (`/v2/listen`) | Streaming transcription & turn detection |
+| **Text-to-Speech (TTS)** | Deepgram Flux TTS / Cartesia | Streaming, interruptible speech synthesis |
+| **Vector Database** | Qdrant | Dense + sparse hybrid vector search |
+| **Graph Database** | Neo4j (Community) | Knowledge graph & multi-hop relationship queries |
+| **Cache & Queues** | Redis 8-alpine | Ephemeral session state & rate limiting |
+| **Sandbox Execution** | E2B | Isolated microVM execution environment |
+| **Mobile Integration** | Android (Kotlin) | Authenticated device bridge |
+| **Observability** | OpenTelemetry, Prometheus | End-to-end distributed latency and trace tracking |
+
+---
+
+## 5. Current State of the Codebase
+
+The repository is currently at **Phase 0 (Foundation) transitioning to Phase 1 (Deterministic Agent Core)**:
+
+1. **Full Engineering Specification**:
+   - Complete architectural blueprints, API specifications ([API_SPEC.md](file:///d:/Projects/HINA/API_SPEC.md)), data schemas ([DATA_SPEC.md](file:///d:/Projects/HINA/DATA_SPEC.md)), test strategies ([TESTING_STRATEGY.md](file:///d:/Projects/HINA/TESTING_STRATEGY.md)), evaluation plans ([EVALUATION_PLAN.md](file:///d:/Projects/HINA/EVALUATION_PLAN.md)), and roadmaps ([ROADMAP.md](file:///d:/Projects/HINA/ROADMAP.md)).
+2. **Infrastructure**:
+   - [docker-compose.yml](file:///d:/Projects/HINA/memory_core/docker-compose.yml) is ready for spinning up local Qdrant, Neo4j, and Redis instances.
+3. **Environment & Configuration**:
+   - [.env.example](file:///d:/Projects/HINA/.env.example) outlines required secrets and endpoints.
+   - [pyproject.toml](file:///d:/Projects/HINA/pyproject.toml) & [requirements.txt](file:///d:/Projects/HINA/requirements.txt) specify all dependencies and tooling (`ruff`, `mypy --strict`, `pytest`).
+4. **Active Code**:
+   - [orchestrator/main.py](file:///d:/Projects/HINA/orchestrator/main.py): Initial FastAPI application exposing `/v1/health`.
+   - [tests/test_health.py](file:///d:/Projects/HINA/tests/test_health.py): Baseline unit test passing the health endpoint.
+
+---
+
+## 6. Implementation Roadmap
+
+The project follows a 16-week build plan ([ROADMAP.md](file:///d:/Projects/HINA/ROADMAP.md)):
+
+* **Phase 0 (Current)**: Foundation, environment setup, base API, CI, container definitions.
+* **Phase 1 (Weeks 2–3)**: Deterministic text agent core (Supervisor, routing, tool registry, mock/golden tests).
+* **Phase 2 (Week 4)**: Secure sandbox integration (E2B microVM adapter, execution repair loop).
+* **Phase 3 (Weeks 5–7)**: Persistent hybrid memory (Qdrant vector + Neo4j graph pipelines).
+* **Phase 4 (Weeks 8–10)**: Realtime voice gateway (LiveKit WebRTC + streaming STT/TTS).
+* **Phase 5 (Weeks 11–12)**: Android device bridge & permission approval flow.
+* **Phase 6 (Week 13)**: Developer dashboard (Next.js UI for memory, traces, and action approvals).
+* **Phases 7–8 (Weeks 14–16)**: Security hardening, performance benchmarking, and release.
