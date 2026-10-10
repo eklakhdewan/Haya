@@ -25,17 +25,17 @@ from orchestrator.devices.persistence_models import SecurityBase
         ),
     ],
 )
-def test_normalize_async_database_url(source, expected):
+def test_normalize_async_database_url(source: str, expected: str) -> None:
     assert database.normalize_async_database_url(source) == expected
 
 
 @pytest.mark.parametrize("url", ["", "sqlite:///local.db", "mysql://localhost/hina"])
-def test_normalize_async_database_url_rejects_unsupported_scheme(url):
+def test_normalize_async_database_url_rejects_unsupported_scheme(url: str) -> None:
     with pytest.raises(ValueError, match="PostgreSQL"):
         database.normalize_async_database_url(url)
 
 
-def test_database_runtime_is_optional_outside_production(monkeypatch):
+def test_database_runtime_is_optional_outside_production(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         database,
         "get_settings",
@@ -69,7 +69,7 @@ def test_database_runtime_creates_async_engine_without_connecting(monkeypatch):
     asyncio.run(runtime.dispose())
 
 
-def test_security_metadata_contains_expected_tables():
+def test_security_metadata_contains_expected_tables() -> None:
     assert set(SecurityBase.metadata.tables) == {
         "security_devices",
         "security_pending_confirmations",
