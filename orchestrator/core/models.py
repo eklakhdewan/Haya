@@ -113,7 +113,7 @@ class MemoryQueryResponse(BaseModel):
 class SandboxExecuteRequest(BaseModel):
     language: Literal["python"] = "python"
     code: str
-    timeout_ms: int = Field(default=5000, ge=500, le=60000)
+    timeout_ms: int = Field(default=5000, ge=1000, le=60000)
     network: Literal["enabled", "disabled"] = "disabled"
 
 
