@@ -2,7 +2,7 @@
 
 from enum import Enum
 from typing import Literal
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -50,9 +50,20 @@ class Settings(BaseSettings):
     sandbox_max_repairs: int = 2
 
     # Security & Tokens
-    jwt_secret: str = Field(default="insecure-dev-secret-replace-in-production", description="JWT signing secret")
+    jwt_secret: str = Field(default="insecure-dev-secret-replace-in-production", description="JWT HS256 signing secret; must be set securely in production")
+    jwt_issuer: str = "hina-orchestrator"
+    jwt_audience: str = "hina-api"
     device_token_ttl_seconds: int = 300
     action_confirmation_ttl_seconds: int = 120
+
+    @model_validator(mode="after")
+    def validate_production_security(self) -> "Settings":
+        if self.environment == Environment.PRODUCTION:
+            if self.jwt_secret == "insecure-dev-secret-replace-in-production" or len(self.jwt_secret) < 32:
+                raise ValueError("Production requires a unique JWT_SECRET of at least 32 characters.")
+            if self.neo4j_password == "change-me":
+                raise ValueError("Production requires a non-default NEO4J_PASSWORD.")
+        return self
 
     # Observability
     otel_service_name: str = "hina-orchestrator"
