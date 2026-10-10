@@ -74,7 +74,7 @@ class Settings(BaseSettings):
                     "Production requires DATABASE_URL for persistent security storage."
                 )
             if not self.database_url.startswith(
-                ("postgresql://", "postgresql+asyncpg://")
+                ("postgresql://", "postgresql+asyncpg://", "postgres://")
             ):
                 raise ValueError(
                     "DATABASE_URL must use a PostgreSQL connection URL."
