@@ -4,13 +4,14 @@ import asyncio
 import time
 from typing import Any
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from orchestrator.agents.coder import CoderAgent
 from orchestrator.agents.device import DeviceAgent
 from orchestrator.agents.supervisor import Supervisor
+from orchestrator.core.auth import decode_access_token
 from orchestrator.core.config import get_settings
 from orchestrator.core.errors import HinaError
 from orchestrator.dashboard import DASHBOARD_HTML
@@ -56,6 +57,42 @@ app = FastAPI(
 
 # Application state dependencies
 settings = get_settings()
+
+
+@app.middleware("http")
+async def authenticate_http_requests(request: Request, call_next: Any) -> Any:
+    """Require a verified bearer JWT on every HTTP route except the liveness endpoint."""
+    if request.url.path == "/v1/health" or request.method == "OPTIONS":
+        return await call_next(request)
+    scheme, _, token = request.headers.get("authorization", "").partition(" ")
+    if scheme.lower() != "bearer" or not token.strip():
+        return JSONResponse(
+            status_code=401,
+            content={"detail": {"code": "AUTH_REQUIRED", "message": "Bearer token required."}},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    try:
+        request.state.principal = decode_access_token(token.strip())
+    except HTTPException as exc:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+            headers=exc.headers,
+        )
+    return await call_next(request)
+
+
+def _principal_user_id(request: Request) -> str:
+    principal = getattr(request.state, "principal", {})
+    user_id = principal.get("sub")
+    if not isinstance(user_id, str) or not user_id.strip():
+        raise HTTPException(status_code=401, detail="Authenticated token has no valid subject.")
+    return user_id
+
+
+def _require_admin(request: Request) -> None:
+    if request.state.principal.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Administrator role required.")
 
 # Initialize LLM provider based on settings/environment
 llm_provider: LLMProvider
@@ -122,27 +159,42 @@ async def health() -> Health:
 # --- Developer Dashboard Control Plane ---
 @app.get("/", response_class=HTMLResponse)
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard_view() -> HTMLResponse:
-    """Serve developer control plane dashboard per UI_SPEC.md."""
+async def dashboard_view(request: Request) -> HTMLResponse:
+    """Serve the developer control plane only to authenticated administrators."""
+    _require_admin(request)
     return HTMLResponse(content=DASHBOARD_HTML)
 
 
 @app.get("/v1/traces", response_model=APIResponse[list[dict[str, Any]]])
-async def get_traces(limit: int = 50) -> APIResponse[list[dict[str, Any]]]:
-    """Retrieve collected distributed traces."""
-    return APIResponse(data=trace_manager.get_traces(limit=limit))
+async def get_traces(request: Request, limit: int = 50) -> APIResponse[list[dict[str, Any]]]:
+    """Retrieve collected traces; trace data is restricted to administrators."""
+    _require_admin(request)
+    return APIResponse(data=trace_manager.get_traces(limit=max(1, min(limit, 200))))
 
 
 @app.get("/v1/traces/{trace_id}", response_model=APIResponse[dict[str, Any] | None])
-async def get_trace_by_id(trace_id: str) -> APIResponse[dict[str, Any] | None]:
-    """Retrieve specific distributed trace by ID."""
+async def get_trace_by_id(trace_id: str, request: Request) -> APIResponse[dict[str, Any] | None]:
+    """Retrieve a specific trace; trace data is restricted to administrators."""
+    _require_admin(request)
     return APIResponse(data=trace_manager.get_trace(trace_id))
 
 
 # --- Realtime Voice WebSocket Endpoint ---
 @app.websocket("/v1/realtime/ws")
-async def realtime_ws(websocket: WebSocket, session_id: str | None = None, user_id: str = "default-user") -> None:
-    """Bidirectional streaming WebSocket for real-time voice, turn events, and barge-in."""
+async def realtime_ws(websocket: WebSocket, session_id: str | None = None, user_id: str | None = None) -> None:
+    """Bidirectional voice socket authenticated with a short-lived bearer JWT."""
+    scheme, _, header_token = websocket.headers.get("authorization", "").partition(" ")
+    token = header_token.strip() if scheme.lower() == "bearer" else websocket.query_params.get("access_token", "")
+    try:
+        claims = decode_access_token(token)
+    except HTTPException:
+        await websocket.close(code=4401, reason="Authentication required")
+        return
+    authenticated_user_id = claims["sub"]
+    if user_id is not None and user_id != authenticated_user_id:
+        await websocket.close(code=4403, reason="User identity mismatch")
+        return
+    user_id = authenticated_user_id
     await websocket.accept()
     s_id = session_id or str(uuid4())
     session = voice_gateway.sessions.get_or_create(s_id, user_id)
@@ -188,8 +240,10 @@ async def realtime_ws(websocket: WebSocket, session_id: str | None = None, user_
 
 # --- Supervisor Endpoints ---
 @app.post("/v1/supervisor/route", response_model=APIResponse[SupervisorOutput])
-async def route_intent(payload: SupervisorInput) -> APIResponse[SupervisorOutput]:
-    """Route user turn through Supervisor agent with distributed trace recording."""
+async def route_intent(payload: SupervisorInput, request: Request) -> APIResponse[SupervisorOutput]:
+    """Route a turn only for the authenticated token subject."""
+    if payload.user_id != _principal_user_id(request):
+        raise HTTPException(status_code=403, detail="user_id must match the authenticated token subject.")
     t0 = time.perf_counter()
     trace_manager.start_trace(payload.session_id, "supervisor_route", payload.trace_id)
     try:
@@ -294,10 +348,11 @@ class MemoryQueryApiRequest(BaseModel):
 
 
 @app.post("/v1/memory/query", response_model=APIResponse[MemoryQueryResponse])
-async def query_memory(req: MemoryQueryApiRequest) -> APIResponse[MemoryQueryResponse]:
-    """Perform hybrid vector + graph memory retrieval per API_SPEC."""
+async def query_memory(req: MemoryQueryApiRequest, request: Request) -> APIResponse[MemoryQueryResponse]:
+    """Perform memory retrieval only within the authenticated user's namespace."""
+    user_id = _principal_user_id(request)
     items = await memory_lifecycle.query(
-        user_id=req.user_id,
+        user_id=user_id,
         query_text=req.query,
         top_k=req.top_k,
         include_graph=req.include_graph,
@@ -330,16 +385,20 @@ class MemoryStoreRequest(BaseModel):
 
 
 @app.post("/v1/memory/store", response_model=APIResponse[MemoryRecord])
-async def store_memory(req: MemoryStoreRequest) -> APIResponse[MemoryRecord]:
-    """Persist a memory candidate across vector and graph layers."""
-    rec = await memory_lifecycle.store_candidate(user_id=req.user_id, candidate=req.candidate)
+async def store_memory(req: MemoryStoreRequest, request: Request) -> APIResponse[MemoryRecord]:
+    """Persist a memory candidate only in the authenticated user's namespace."""
+    user_id = _principal_user_id(request)
+    rec = await memory_lifecycle.store_candidate(user_id=user_id, candidate=req.candidate)
     return APIResponse(data=rec)
 
 
 @app.delete("/v1/memory/{memory_id}", response_model=APIResponse[dict[str, Any]])
-async def delete_memory(memory_id: str, user_id: str = "default-user") -> APIResponse[dict[str, Any]]:
-    """Propagate cascading memory deletion across vector, graph, and audit layers."""
-    deleted = await memory_lifecycle.delete_memory(user_id=user_id, memory_id=memory_id)
+async def delete_memory(memory_id: str, request: Request, user_id: str | None = None) -> APIResponse[dict[str, Any]]:
+    """Delete memory only from the authenticated user's namespace."""
+    authenticated_user_id = _principal_user_id(request)
+    if user_id is not None and user_id != authenticated_user_id:
+        raise HTTPException(status_code=403, detail="Cannot delete another user's memory.")
+    deleted = await memory_lifecycle.delete_memory(user_id=authenticated_user_id, memory_id=memory_id)
     return APIResponse(data={"memory_id": memory_id, "deleted": deleted})
 
 
@@ -351,9 +410,12 @@ class DeviceRegisterRequest(BaseModel):
 
 
 @app.post("/v1/device/register", response_model=APIResponse[DeviceInfo])
-async def register_device(req: DeviceRegisterRequest) -> APIResponse[DeviceInfo]:
-    """Enroll a new mobile device."""
-    info = device_manager.register_device(device_id=req.device_id, user_id=req.user_id, name=req.name)
+async def register_device(req: DeviceRegisterRequest, request: Request) -> APIResponse[DeviceInfo]:
+    """Enroll a mobile device for the authenticated owner only."""
+    user_id = _principal_user_id(request)
+    if req.user_id != user_id:
+        raise HTTPException(status_code=403, detail="user_id must match the authenticated token subject.")
+    info = device_manager.register_device(device_id=req.device_id, user_id=user_id, name=req.name)
     return APIResponse(data=info)
 
 
@@ -362,17 +424,17 @@ class DeviceRevokeRequest(BaseModel):
 
 
 @app.post("/v1/device/revoke", response_model=APIResponse[dict[str, bool]])
-async def revoke_device(req: DeviceRevokeRequest) -> APIResponse[dict[str, bool]]:
-    """Revoke authorization for a mobile device."""
-    revoked = device_manager.revoke_device(req.device_id)
+async def revoke_device(req: DeviceRevokeRequest, request: Request) -> APIResponse[dict[str, bool]]:
+    """Revoke only a device owned by the authenticated user."""
+    revoked = device_manager.revoke_device(req.device_id, user_id=_principal_user_id(request))
     return APIResponse(data={"revoked": revoked})
 
 
 @app.post("/v1/device/actions", response_model=APIResponse[dict[str, Any]])
-async def submit_device_action(intent: MobileIntent, user_id: str = "default-user") -> APIResponse[dict[str, Any]]:
-    """Execute or request approval for a typed mobile intent per API_SPEC."""
+async def submit_device_action(intent: MobileIntent, request: Request) -> APIResponse[dict[str, Any]]:
+    """Execute or request approval for an intent owned by the authenticated user."""
     try:
-        result = await device_manager.execute_intent(intent=intent, user_id=user_id)
+        result = await device_manager.execute_intent(intent=intent, user_id=_principal_user_id(request))
         return APIResponse(data=result)
     except HinaError as e:
         raise HTTPException(
@@ -387,14 +449,17 @@ class DeviceConfirmRequest(BaseModel):
 
 
 @app.post("/v1/device/confirm", response_model=APIResponse[dict[str, bool]])
-async def confirm_device_action(req: DeviceConfirmRequest) -> APIResponse[dict[str, bool]]:
-    """Approve a high-risk pending action using confirmation token."""
-    confirmed = device_manager.confirm_action(req.intent_id, req.confirmation_token)
+async def confirm_device_action(req: DeviceConfirmRequest, request: Request) -> APIResponse[dict[str, bool]]:
+    """Approve a pending action only as its authenticated owner."""
+    confirmed = device_manager.confirm_action(req.intent_id, req.confirmation_token, user_id=_principal_user_id(request))
     return APIResponse(data={"confirmed": confirmed})
 
 
 @app.get("/v1/device/audit", response_model=APIResponse[list[ActionAuditRecord]])
-async def get_device_audit(device_id: str | None = None) -> APIResponse[list[ActionAuditRecord]]:
-    """Retrieve immutable action audit records."""
-    audit_trail = device_manager.get_audit_trail(device_id=device_id)
+async def get_device_audit(request: Request, device_id: str | None = None) -> APIResponse[list[ActionAuditRecord]]:
+    """Retrieve audit records for the authenticated user only."""
+    user_id = _principal_user_id(request)
+    if device_id is not None and not device_manager.is_device_authorized(device_id, user_id=user_id):
+        raise HTTPException(status_code=403, detail="Cannot inspect another user's device audit trail.")
+    audit_trail = device_manager.get_audit_trail(device_id=device_id, user_id=user_id)
     return APIResponse(data=audit_trail)
