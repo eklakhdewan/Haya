@@ -321,7 +321,7 @@ async def execute_sandbox(req: SandboxExecuteRequest) -> APIResponse[SandboxExec
 
 class CoderTaskRequest(BaseModel):
     task: str = Field(min_length=1, max_length=20_000)
-    timeout_ms: int = Field(default=5000, ge=500, le=60_000)
+    timeout_ms: int = Field(default=5000, ge=1000, le=60_000)
     network: Literal["enabled", "disabled"] = "disabled"
 
 
