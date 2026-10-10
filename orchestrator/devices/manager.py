@@ -152,6 +152,8 @@ class DeviceManager:
             raise PolicyDeniedError("Device is not authorized for this authenticated user.")
 
         fingerprint = self._fingerprint(intent)
+        # Confirmation policy is server-owned: all MEDIUM and HIGH actions require approval.
+        requires_confirmation = risk_level in (RiskLevel.MEDIUM, RiskLevel.HIGH)
         pending = self._pending_confirmations.get(intent.intent_id)
         resumed_approved_action = False
 
@@ -179,7 +181,7 @@ class DeviceManager:
         else:
             self.validator.validate_intent(intent)
 
-        if risk_level == RiskLevel.HIGH and not resumed_approved_action:
+        if requires_confirmation and not resumed_approved_action:
             challenge_token = self._issue_confirmation(intent, user_id, fingerprint)
             self._audit_log.append(ActionAuditRecord(
                 user_id=user_id, device_id=intent.device_id, intent_type=intent.intent_type.value,
@@ -197,7 +199,7 @@ class DeviceManager:
         executed_at = datetime.now(timezone.utc).isoformat()
         audit = ActionAuditRecord(
             user_id=user_id, device_id=intent.device_id, intent_type=intent.intent_type.value,
-            risk=risk_level.value, confirmation="approved" if risk_level == RiskLevel.HIGH else "not_required",
+            risk=risk_level.value, confirmation="approved" if requires_confirmation else "not_required",
             requested_at=requested_at, executed_at=executed_at, result="success",
             details={"intent_fingerprint": fingerprint},
         )
