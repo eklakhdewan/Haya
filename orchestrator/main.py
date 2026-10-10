@@ -12,7 +12,7 @@ from orchestrator.agents.coder import CoderAgent
 from orchestrator.agents.device import DeviceAgent
 from orchestrator.agents.supervisor import Supervisor
 from orchestrator.core.auth import decode_access_token
-from orchestrator.core.config import Environment, get_settings
+from orchestrator.core.config import get_settings
 from orchestrator.core.errors import HinaError
 from orchestrator.dashboard import DASHBOARD_HTML
 from orchestrator.observability import trace_manager
@@ -45,7 +45,6 @@ from orchestrator.providers.gemini import GeminiProvider
 from orchestrator.providers.mock_llm import MockLLMProvider
 from orchestrator.sandbox.base import SandboxAdapter
 from orchestrator.sandbox.e2b_adapter import E2BSandboxAdapter
-from orchestrator.sandbox.mock_sandbox import MockSandboxAdapter
 from orchestrator.tools.builtin import CalculatorTool, TimeTool
 from orchestrator.tools.registry import ToolRegistry
 
@@ -114,12 +113,9 @@ supervisor = Supervisor(llm_provider=llm_provider)
 
 # Initialize Sandbox adapter
 sandbox_adapter: SandboxAdapter
-if settings.environment == Environment.TESTING:
-    # The mock is for deterministic tests only; it is not a security boundary.
-    sandbox_adapter = MockSandboxAdapter()
-else:
-    # Fail closed without E2B credentials rather than execute untrusted code in-process.
-    sandbox_adapter = E2BSandboxAdapter(api_key=settings.e2b_api_key)
+# Runtime API always uses the external sandbox adapter. Tests must inject the mock explicitly.
+# Fail closed without E2B credentials rather than execute untrusted code in-process.
+sandbox_adapter = E2BSandboxAdapter(api_key=settings.e2b_api_key)
 
 # Initialize Coder Agent
 coder_agent = CoderAgent(
