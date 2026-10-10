@@ -1,18 +1,22 @@
 """HINA Orchestrator API Service."""
 
 import asyncio
+import inspect
 import time
+from contextlib import asynccontextmanager
 from typing import Any, Literal
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
+from sqlalchemy import inspect as sqlalchemy_inspect, text
 
 from orchestrator.agents.coder import CoderAgent
 from orchestrator.agents.device import DeviceAgent
 from orchestrator.agents.supervisor import Supervisor
 from orchestrator.core.auth import decode_access_token
 from orchestrator.core.config import get_settings
+from orchestrator.core.database import create_database_runtime
 from orchestrator.core.errors import HinaError
 from orchestrator.dashboard import DASHBOARD_HTML
 from orchestrator.observability import trace_manager
@@ -30,6 +34,7 @@ from orchestrator.core.models import (
     SupervisorOutput,
 )
 from orchestrator.devices.manager import ActionAuditRecord, DeviceInfo, DeviceManager
+from orchestrator.devices.persistent_manager import PersistentDeviceManager
 from orchestrator.devices.validator import MobileIntentValidator
 from orchestrator.gateway.events import RealtimeEventType
 from orchestrator.gateway.stt_adapter import MockSTTAdapter
@@ -48,10 +53,57 @@ from orchestrator.sandbox.e2b_adapter import E2BSandboxAdapter
 from orchestrator.tools.builtin import CalculatorTool, TimeTool
 from orchestrator.tools.registry import ToolRegistry
 
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    """Initialize and dispose persistent security storage with the application."""
+    global device_manager
+    original_device_manager = device_manager
+    runtime = create_database_runtime()
+    if runtime is not None:
+        try:
+            async with runtime.engine.connect() as connection:
+                await connection.execute(text("SELECT 1"))
+                required_tables = {
+                    "security_devices",
+                    "security_pending_confirmations",
+                    "security_used_nonces",
+                    "security_completed_intents",
+                    "security_action_audit",
+                    "alembic_version",
+                }
+                existing_tables = await connection.run_sync(
+                    lambda sync_connection: set(
+                        sqlalchemy_inspect(sync_connection).get_table_names()
+                    )
+                )
+                missing_tables = required_tables - existing_tables
+                if missing_tables:
+                    raise RuntimeError(
+                        "Persistent security schema is not migrated. Run "
+                        "'alembic upgrade head' before starting the API. Missing: "
+                        + ", ".join(sorted(missing_tables))
+                    )
+            device_manager = PersistentDeviceManager(
+                runtime=runtime,
+                validator=MobileIntentValidator(),
+            )
+            app.state.database_runtime = runtime
+        except Exception:
+            await runtime.dispose()
+            raise
+    try:
+        yield
+    finally:
+        if runtime is not None:
+            device_manager = original_device_manager
+            await runtime.dispose()
+
+
 app = FastAPI(
     title="Hina Orchestrator",
     version="0.1.0",
     description="Autonomous real-time AI companion orchestrator and agent core",
+    lifespan=app_lifespan,
 )
 
 
@@ -139,6 +191,14 @@ tool_registry.register(TimeTool())
 device_validator = MobileIntentValidator()
 device_manager = DeviceManager(validator=device_validator)
 device_agent = DeviceAgent(llm_provider=llm_provider)
+
+
+async def _device_manager_call(method: Any, *args: Any, **kwargs: Any) -> Any:
+    """Support synchronous in-memory and asynchronous persistent manager methods."""
+    result = method(*args, **kwargs)
+    if inspect.isawaitable(result):
+        return await result
+    return result
 
 # Initialize Realtime Voice Gateway
 stt_adapter = MockSTTAdapter()
@@ -430,7 +490,9 @@ async def register_device(req: DeviceRegisterRequest, request: Request) -> APIRe
     user_id = _principal_user_id(request)
     if req.user_id != user_id:
         raise HTTPException(status_code=403, detail="user_id must match the authenticated token subject.")
-    info = device_manager.register_device(device_id=req.device_id, user_id=user_id, name=req.name)
+    info = await _device_manager_call(
+        device_manager.register_device, device_id=req.device_id, user_id=user_id, name=req.name
+    )
     return APIResponse(data=info)
 
 
@@ -441,7 +503,9 @@ class DeviceRevokeRequest(BaseModel):
 @app.post("/v1/device/revoke", response_model=APIResponse[dict[str, bool]])
 async def revoke_device(req: DeviceRevokeRequest, request: Request) -> APIResponse[dict[str, bool]]:
     """Revoke only a device owned by the authenticated user."""
-    revoked = device_manager.revoke_device(req.device_id, user_id=_principal_user_id(request))
+    revoked = await _device_manager_call(
+        device_manager.revoke_device, req.device_id, user_id=_principal_user_id(request)
+    )
     return APIResponse(data={"revoked": revoked})
 
 
@@ -466,7 +530,12 @@ class DeviceConfirmRequest(BaseModel):
 @app.post("/v1/device/confirm", response_model=APIResponse[dict[str, bool]])
 async def confirm_device_action(req: DeviceConfirmRequest, request: Request) -> APIResponse[dict[str, bool]]:
     """Approve a pending action only as its authenticated owner."""
-    confirmed = device_manager.confirm_action(req.intent_id, req.confirmation_token, user_id=_principal_user_id(request))
+    confirmed = await _device_manager_call(
+        device_manager.confirm_action,
+        req.intent_id,
+        req.confirmation_token,
+        user_id=_principal_user_id(request),
+    )
     if not confirmed:
         raise HTTPException(status_code=403, detail={"code": "POLICY_DENIED", "message": "Invalid, expired, or unauthorized confirmation token."})
     return APIResponse(data={"confirmed": True})
@@ -476,7 +545,11 @@ async def confirm_device_action(req: DeviceConfirmRequest, request: Request) -> 
 async def get_device_audit(request: Request, device_id: str | None = None) -> APIResponse[list[ActionAuditRecord]]:
     """Retrieve audit records for the authenticated user only."""
     user_id = _principal_user_id(request)
-    if device_id is not None and not device_manager.owns_device(device_id, user_id=user_id):
+    if device_id is not None and not await _device_manager_call(
+        device_manager.owns_device, device_id, user_id=user_id
+    ):
         raise HTTPException(status_code=403, detail="Cannot inspect another user's device audit trail.")
-    audit_trail = device_manager.get_audit_trail(device_id=device_id, user_id=user_id)
+    audit_trail = await _device_manager_call(
+        device_manager.get_audit_trail, device_id=device_id, user_id=user_id
+    )
     return APIResponse(data=audit_trail)
