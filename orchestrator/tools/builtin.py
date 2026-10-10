@@ -2,17 +2,17 @@
 
 import ast
 import operator
-from datetime import datetime, timezone
 from collections.abc import Callable
-from typing import Any, TypeAlias
+from datetime import UTC, datetime
+from typing import Any
 
 from orchestrator.core.errors import InvalidSchemaError
 from orchestrator.core.models import RiskLevel
 from orchestrator.tools.base import Tool
 
 
-NumericOperator: TypeAlias = Callable[[float | int, float | int], float | int]
-UnaryOperator: TypeAlias = Callable[[float | int], float | int]
+NumericOperator = Callable[[float | int, float | int], float | int]
+UnaryOperator = Callable[[float | int], float | int]
 
 
 class CalculatorTool(Tool):
@@ -62,9 +62,9 @@ class CalculatorTool(Tool):
             raise ValueError(f"Unsupported binary operator: {op_type.__name__}")
         elif isinstance(node, ast.UnaryOp):
             operand = self._eval_node(node.operand)
-            op_type = type(node.op)
-            if op_type in self._UNARY_OPERATORS:
-                return self._UNARY_OPERATORS[op_type](operand)
+            unary_op_type = type(node.op)
+            if unary_op_type in self._UNARY_OPERATORS:
+                return self._UNARY_OPERATORS[unary_op_type](operand)
             raise ValueError(f"Unsupported unary operator: {op_type.__name__}")
         raise ValueError(f"Unsupported expression node: {type(node).__name__}")
 
@@ -96,7 +96,7 @@ class TimeTool(Tool):
     }
 
     async def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return {
             "iso": now.isoformat(),
             "timestamp": now.timestamp(),
