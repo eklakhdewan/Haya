@@ -2,6 +2,7 @@
 
 from enum import Enum
 from typing import Literal
+
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -70,13 +71,8 @@ class Settings(BaseSettings):
     def validate_security_configuration(self) -> "Settings":
         if not self.jwt_secret.strip():
             raise ValueError("JWT_SECRET must be set to a secure random value.")
-        if self.jwt_secret in {
-            "replace-with-a-long-random-secret",
-            "insecure-dev-secret-replace-in-production",
-        }:
-            raise ValueError(
-                "Replace the JWT_SECRET placeholder with a unique random secret."
-            )
+        if self.jwt_secret in {"replace-with-a-long-random-secret", "insecure-dev-secret-replace-in-production"}:
+            raise ValueError("Replace the JWT_SECRET placeholder with a unique random secret.")
         if len(self.jwt_secret) < 32:
             raise ValueError("JWT_SECRET must be at least 32 characters long.")
 
