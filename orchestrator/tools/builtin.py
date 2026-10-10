@@ -65,7 +65,7 @@ class CalculatorTool(Tool):
             unary_op_type = type(node.op)
             if unary_op_type in self._UNARY_OPERATORS:
                 return self._UNARY_OPERATORS[unary_op_type](operand)
-            raise ValueError(f"Unsupported unary operator: {op_type.__name__}")
+            raise ValueError(f"Unsupported unary operator: {unary_op_type.__name__}")
         raise ValueError(f"Unsupported expression node: {type(node).__name__}")
 
     async def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
