@@ -3,11 +3,16 @@
 import ast
 import operator
 from datetime import datetime, timezone
-from typing import Any
+from collections.abc import Callable
+from typing import Any, TypeAlias
 
 from orchestrator.core.errors import InvalidSchemaError
 from orchestrator.core.models import RiskLevel
 from orchestrator.tools.base import Tool
+
+
+NumericOperator: TypeAlias = Callable[[float | int, float | int], float | int]
+UnaryOperator: TypeAlias = Callable[[float | int], float | int]
 
 
 class CalculatorTool(Tool):
@@ -28,13 +33,15 @@ class CalculatorTool(Tool):
         "required": ["expression"],
     }
 
-    _OPERATORS = {
+    _BINARY_OPERATORS: dict[type[ast.operator], NumericOperator] = {
         ast.Add: operator.add,
         ast.Sub: operator.sub,
         ast.Mult: operator.mul,
         ast.Div: operator.truediv,
         ast.Pow: operator.pow,
         ast.Mod: operator.mod,
+    }
+    _UNARY_OPERATORS: dict[type[ast.unaryop], UnaryOperator] = {
         ast.USub: operator.neg,
         ast.UAdd: operator.pos,
     }
@@ -48,16 +55,16 @@ class CalculatorTool(Tool):
             left = self._eval_node(node.left)
             right = self._eval_node(node.right)
             op_type = type(node.op)
-            if op_type in self._OPERATORS:
+            if op_type in self._BINARY_OPERATORS:
                 if op_type == ast.Div and right == 0:
                     raise ZeroDivisionError("Division by zero in calculation")
-                return self._OPERATORS[op_type](left, right)  # type: ignore[no-any-return]
+                return self._BINARY_OPERATORS[op_type](left, right)
             raise ValueError(f"Unsupported binary operator: {op_type.__name__}")
         elif isinstance(node, ast.UnaryOp):
             operand = self._eval_node(node.operand)
             op_type = type(node.op)
-            if op_type in self._OPERATORS:
-                return self._OPERATORS[op_type](operand)  # type: ignore[no-any-return]
+            if op_type in self._UNARY_OPERATORS:
+                return self._UNARY_OPERATORS[op_type](operand)
             raise ValueError(f"Unsupported unary operator: {op_type.__name__}")
         raise ValueError(f"Unsupported expression node: {type(node).__name__}")
 
