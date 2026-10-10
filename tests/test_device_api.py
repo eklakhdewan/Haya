@@ -3,10 +3,11 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 from fastapi.testclient import TestClient
+from tests.security_helpers import auth_headers
 
 from orchestrator.main import app
 
-client = TestClient(app)
+client = TestClient(app, headers=auth_headers("user-api-device", "user"))
 
 
 def test_api_device_lifecycle() -> None:
