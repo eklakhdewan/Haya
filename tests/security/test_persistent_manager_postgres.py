@@ -132,3 +132,20 @@ async def test_concurrent_replay_only_allows_one_completion(persistent_manager):
     outcomes = await asyncio.gather(attempt(), attempt())
     assert outcomes.count("success") == 1
     assert outcomes.count("denied") == 1
+
+
+@pytest.mark.asyncio
+async def test_concurrent_registration_cannot_claim_device_for_two_users(persistent_manager):
+    device_id = f"device-{uuid4()}"
+    users = [f"user-{uuid4()}", f"user-{uuid4()}"]
+    outcomes = await asyncio.gather(
+        *(persistent_manager.register_device(device_id, user_id) for user_id in users),
+        return_exceptions=True,
+    )
+
+    assert sum(not isinstance(item, BaseException) for item in outcomes) == 1
+    denied = [item for item in outcomes if isinstance(item, PolicyDeniedError)]
+    assert len(denied) == 1
+    assert await persistent_manager.is_device_authorized(
+        device_id, user_id=users[0]
+    ) != await persistent_manager.is_device_authorized(device_id, user_id=users[1])
