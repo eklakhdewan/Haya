@@ -84,6 +84,31 @@ def test_confirmation_is_bound_to_exact_intent_and_user() -> None:
     asyncio.run(run())
 
 
+
+def test_medium_risk_requires_server_side_confirmation_even_if_client_flag_is_false() -> None:
+    async def run() -> None:
+        manager = DeviceManager()
+        device_id = str(uuid4())
+        manager.register_device(device_id, "alice")
+        now = datetime.now(timezone.utc)
+        intent = MobileIntent(
+            device_id=device_id,
+            intent_type=IntentType.SYSTEM_SETTING,
+            payload={"setting": "wifi", "action": "toggle"},
+            issued_at=now,
+            expires_at=now + timedelta(seconds=60),
+            nonce=f"setting-{uuid4().hex}-nonce",
+            confirmation_required=False,
+        )
+        with pytest.raises(ConfirmationRequiredError) as challenge:
+            await manager.execute_intent(intent, user_id="alice")
+        token = challenge.value.details["challenge_token"]
+        assert manager.confirm_action(intent.intent_id, token, user_id="alice")
+        result = await manager.execute_intent(intent, user_id="alice")
+        assert result["status"] == "success"
+
+    asyncio.run(run())
+
 def test_sandbox_fails_closed_without_isolated_provider() -> None:
     async def run() -> None:
         adapter = E2BSandboxAdapter(api_key="")
