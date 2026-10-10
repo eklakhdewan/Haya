@@ -58,7 +58,7 @@ Required JWT claims:
 - `aud`: `hina-api` by default
 - `iat` and `exp`: issued-at and expiry timestamps
 
-Tokens are verified with HS256 and `JWT_SECRET`. Generate a unique random secret of at least 32 characters; do not use the `.env.example` placeholder. The API intentionally does not expose a public token-minting endpoint: tokens must come from a trusted identity component. Admin-only access to the dashboard and trace endpoints requires the signed `role=admin` claim.
+Tokens are verified with HS256 and `JWT_SECRET`. Generate a unique random secret of at least 32 characters; do not use the `.env.example` placeholder. The API intentionally does not expose a public token-minting endpoint: production tokens must come from a trusted identity component. For local development only, set `ENVIRONMENT=development` and use `python scripts/issue_dev_token.py --subject local-user --role user`; the helper refuses to run in staging or production. Admin-only access to the dashboard and trace endpoints requires the signed `role=admin` claim.
 
 Memory namespaces are derived from the authenticated `sub`; caller-supplied user IDs cannot select another user's namespace. Device registration and revocation enforce device ownership. High-risk action approvals are short-lived, one-time, and bound to the exact intent payload, device, and user. Replaying or modifying an approved intent is denied.
 
