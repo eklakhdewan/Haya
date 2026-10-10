@@ -157,12 +157,15 @@ class DeviceManager:
         pending = self._pending_confirmations.get(intent.intent_id)
         resumed_approved_action = False
 
+        # An expired approval challenge may be renewed only while the original intent is
+        # still valid. Never extend the intent's own expiry or bypass schema/replay checks.
+        if pending and now >= pending.expires_at:
+            self._pending_confirmations.pop(intent.intent_id, None)
+            pending = None
+
         # An approval may resume only the exact previously validated intent, for the same
         # user and device, before both the intent and approval expire.
         if pending:
-            if now >= pending.expires_at:
-                self._pending_confirmations.pop(intent.intent_id, None)
-                raise PolicyDeniedError("Action confirmation has expired; submit the action again.")
             if (
                 pending.user_id != user_id
                 or pending.device_id != intent.device_id
@@ -179,6 +182,8 @@ class DeviceManager:
                 raise PolicyDeniedError("Approved intent has expired.")
             resumed_approved_action = True
         else:
+            # This rejects an expired intent, completed intent ID, reused nonce, or invalid
+            # schema. A new challenge is issued below only after these checks pass.
             self.validator.validate_intent(intent)
 
         if requires_confirmation and not resumed_approved_action:
