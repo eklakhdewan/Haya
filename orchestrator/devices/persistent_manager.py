@@ -259,6 +259,7 @@ class PersistentDeviceManager:
                             denied_message = "Action intent has expired; a new valid intent is required."
                         else:
                             await session.delete(pending)
+                            await session.flush()
                             pending = None
                             renewing = True
 
