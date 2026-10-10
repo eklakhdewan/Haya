@@ -10,7 +10,7 @@ class TTSAdapter(ABC):
     """Abstract interface for streaming interruptible TTS synthesis."""
 
     @abstractmethod
-    async def synthesize_stream(
+    def synthesize_stream(
         self,
         text: str,
         cancellation_token: asyncio.Event,
