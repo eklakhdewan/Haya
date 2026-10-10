@@ -55,6 +55,15 @@ app = FastAPI(
     description="Autonomous real-time AI companion orchestrator and agent core",
 )
 
+
+@app.exception_handler(HinaError)
+async def handle_domain_error(request: Request, exc: HinaError) -> JSONResponse:
+    """Map domain authorization/policy errors to stable HTTP responses."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": {"code": exc.code.value, "message": exc.message, "details": exc.details}},
+    )
+
 # Application state dependencies
 settings = get_settings()
 
@@ -458,14 +467,16 @@ class DeviceConfirmRequest(BaseModel):
 async def confirm_device_action(req: DeviceConfirmRequest, request: Request) -> APIResponse[dict[str, bool]]:
     """Approve a pending action only as its authenticated owner."""
     confirmed = device_manager.confirm_action(req.intent_id, req.confirmation_token, user_id=_principal_user_id(request))
-    return APIResponse(data={"confirmed": confirmed})
+    if not confirmed:
+        raise HTTPException(status_code=403, detail={"code": "POLICY_DENIED", "message": "Invalid, expired, or unauthorized confirmation token."})
+    return APIResponse(data={"confirmed": True})
 
 
 @app.get("/v1/device/audit", response_model=APIResponse[list[ActionAuditRecord]])
 async def get_device_audit(request: Request, device_id: str | None = None) -> APIResponse[list[ActionAuditRecord]]:
     """Retrieve audit records for the authenticated user only."""
     user_id = _principal_user_id(request)
-    if device_id is not None and not device_manager.is_device_authorized(device_id, user_id=user_id):
+    if device_id is not None and not device_manager.owns_device(device_id, user_id=user_id):
         raise HTTPException(status_code=403, detail="Cannot inspect another user's device audit trail.")
     audit_trail = device_manager.get_audit_trail(device_id=device_id, user_id=user_id)
     return APIResponse(data=audit_trail)
