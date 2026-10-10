@@ -16,7 +16,7 @@ class GeminiProvider(LLMProvider):
     def __init__(self, api_key: str | None = None, model: str = "gemini-3.8-flash") -> None:
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY", "")
         self.model = model
-        self._client = None
+        self._client: Any | None = None
 
         if not self.api_key:
             # We don't raise immediately on init so mock workflows can load without error,
@@ -30,7 +30,7 @@ class GeminiProvider(LLMProvider):
                     "GOOGLE_API_KEY is not configured. Set GOOGLE_API_KEY in .env or switch to MockLLMProvider."
                 )
             try:
-                from google import genai  # type: ignore[import-not-found]
+                from google import genai
                 self._client = genai.Client(api_key=self.api_key)
             except ImportError:
                 raise ProviderUnavailableError(
