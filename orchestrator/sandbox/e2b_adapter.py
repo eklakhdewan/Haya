@@ -1,16 +1,17 @@
-"""E2B isolated microVM sandbox adapter."""
-
+"""E2B isolated microVM sandbox adapter; fails closed when isolation is unavailable."""
+import asyncio
 import os
+import time
 from uuid import uuid4
 
-from orchestrator.core.errors import ProviderUnavailableError
+from orchestrator.core.errors import PolicyDeniedError, ProviderUnavailableError
 from orchestrator.core.models import SandboxExecutionResult
 from orchestrator.sandbox.base import SandboxAdapter
 from orchestrator.sandbox.static_checker import StaticSecurityChecker
 
 
 class E2BSandboxAdapter(SandboxAdapter):
-    """Adapter executing code inside an external, isolated E2B microVM sandbox."""
+    """Execute untrusted code only in an external E2B microVM."""
 
     def __init__(self, api_key: str | None = None) -> None:
         self.api_key = api_key or os.getenv("E2B_API_KEY", "")
@@ -21,8 +22,14 @@ class E2BSandboxAdapter(SandboxAdapter):
         timeout_ms: int = 5000,
         network: str = "disabled",
     ) -> SandboxExecutionResult:
-        # Pre-flight static policy check
-        check = StaticSecurityChecker.check(code, network=network)
+        started = time.monotonic()
+        if not 1_000 <= timeout_ms <= 60_000:
+            raise PolicyDeniedError("Sandbox timeout must be between 1000 and 60000 milliseconds.")
+        # Egress is denied at the provider boundary; AST checks are only defense-in-depth.
+        if network != "disabled":
+            raise PolicyDeniedError("Network-enabled sandbox execution is disabled by security policy.")
+
+        check = StaticSecurityChecker.check(code, network="disabled")
         if not check.passed:
             return SandboxExecutionResult(
                 execution_id=str(uuid4()),
@@ -30,46 +37,56 @@ class E2BSandboxAdapter(SandboxAdapter):
                 stdout="",
                 stderr="\n".join(check.violations),
                 exit_code=1,
-                execution_time_ms=5,
+                execution_time_ms=max(0, int((time.monotonic() - started) * 1000)),
             )
 
         if not self.api_key:
             raise ProviderUnavailableError(
-                "E2B_API_KEY is not configured. Configure E2B_API_KEY or use MockSandboxAdapter."
+                "Isolated execution is unavailable: configure E2B_API_KEY. "
+                "The API will not fall back to in-process execution."
             )
 
         try:
-            from e2b_code_interpreter import Sandbox  # type: ignore[import-not-found]
-
-            # Convert ms to seconds for E2B timeout
-            timeout_s = max(1, timeout_ms // 1000)
-
-            with Sandbox(api_key=self.api_key, timeout=timeout_s) as sandbox:
-                execution = sandbox.run_code(code)
-                stdout_text = "\n".join([str(log) for log in execution.logs.stdout])
-                stderr_text = "\n".join([str(log) for log in execution.logs.stderr])
-
-                if execution.error:
-                    stderr_text += f"\n{execution.error.name}: {execution.error.value}"
-
-                return SandboxExecutionResult(
-                    execution_id=str(uuid4()),
-                    status="error" if execution.error else "success",
-                    stdout=stdout_text,
-                    stderr=stderr_text,
-                    exit_code=1 if execution.error else 0,
-                    execution_time_ms=timeout_ms // 2,
-                )
-        except ImportError:
+            return await asyncio.to_thread(self._execute_isolated, code, timeout_ms, started)
+        except ImportError as exc:
             raise ProviderUnavailableError(
-                "e2b-code-interpreter is not installed. Install via pip install e2b-code-interpreter."
-            )
-        except Exception as e:
+                "Isolated execution is unavailable: install e2b-code-interpreter."
+            ) from exc
+        except Exception as exc:
+            error_type = type(exc).__name__
+            is_timeout = "timeout" in error_type.lower() or "timed out" in str(exc).lower()
             return SandboxExecutionResult(
                 execution_id=str(uuid4()),
-                status="error",
+                status="timeout" if is_timeout else "error",
                 stdout="",
-                stderr=f"E2B microVM error: {e}",
-                exit_code=1,
-                execution_time_ms=0,
+                stderr="Sandbox execution timed out." if is_timeout else f"Sandbox provider failed ({error_type}).",
+                exit_code=124 if is_timeout else 1,
+                execution_time_ms=max(0, int((time.monotonic() - started) * 1000)),
+            )
+
+    def _execute_isolated(
+        self, code: str, timeout_ms: int, started: float
+    ) -> SandboxExecutionResult:
+        from e2b_code_interpreter import Sandbox  # type: ignore[import-not-found]
+
+        timeout_s = max(1, timeout_ms // 1000)
+        # Sandbox TTL includes startup overhead; run_code enforces the execution timeout.
+        with Sandbox.create(
+            api_key=self.api_key,
+            timeout=max(30, timeout_s + 15),
+            allow_internet_access=False,
+        ) as sandbox:
+            execution = sandbox.run_code(code, timeout=timeout_s)
+            stdout_text = "\n".join(str(log) for log in execution.logs.stdout)
+            stderr_text = "\n".join(str(log) for log in execution.logs.stderr)
+            if execution.error:
+                stderr_text += f"\n{execution.error.name}: {execution.error.value}"
+
+            return SandboxExecutionResult(
+                execution_id=str(uuid4()),
+                status="error" if execution.error else "success",
+                stdout=stdout_text,
+                stderr=stderr_text,
+                exit_code=1 if execution.error else 0,
+                execution_time_ms=max(0, int((time.monotonic() - started) * 1000)),
             )

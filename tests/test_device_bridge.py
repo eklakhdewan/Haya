@@ -94,15 +94,14 @@ def test_device_manager_flow() -> None:
             await manager.execute_intent(sms_intent, user_id=user_id)
 
         challenge_token = exc_info.value.details["challenge_token"]
-        assert challenge_token.startswith("confirm-")
+        assert len(challenge_token) >= 32
 
         # 4. User approves with challenge token
         confirmed = manager.confirm_action(sms_intent.intent_id, challenge_token)
         assert confirmed is True
 
         # 5. Re-executing with approved token succeeds (with fresh transaction nonce)
-        sms_intent.confirmation_token = challenge_token
-        sms_intent.nonce = "nonce_send_sms_confirmed_123456789"
+        # Retry the exact same intent; approval must not permit payload/nonce changes.
         sms_res = await manager.execute_intent(sms_intent, user_id=user_id)
         assert sms_res["status"] == "success"
 
@@ -112,7 +111,7 @@ def test_device_manager_flow() -> None:
 
         # 7. Revoked device rejected
         open_intent.nonce = "nonce_open_app_revoked_test_123"
-        with pytest.raises(PolicyDeniedError, match="revoked"):
+        with pytest.raises(PolicyDeniedError, match="not authorized"):
             await manager.execute_intent(open_intent, user_id=user_id)
 
         # 8. Audit trail

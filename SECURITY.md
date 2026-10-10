@@ -48,9 +48,19 @@ Default:
 
 High-risk actions require explicit user approval unless the user has configured an explicit trusted policy.
 
-## 5. Authentication
+## 5. Authentication and authorization
 
-Use short-lived access tokens and device-bound credentials.
+All HTTP routes require a signed JWT bearer token except `GET /v1/health`. The realtime WebSocket requires a token in the Authorization header or a short-lived `access_token` query parameter (use TLS; query tokens can appear in proxy logs).
+
+Required JWT claims:
+- `sub`: authenticated user ID (non-empty string)
+- `iss`: `hina-orchestrator` by default
+- `aud`: `hina-api` by default
+- `iat` and `exp`: issued-at and expiry timestamps
+
+Tokens are verified with HS256 and `JWT_SECRET`. Generate a unique random secret of at least 32 characters; do not use the `.env.example` placeholder. The API intentionally does not expose a public token-minting endpoint: production tokens must come from a trusted identity component. For local development only, set `ENVIRONMENT=development` and use `python scripts/issue_dev_token.py --subject local-user --role user`; the helper refuses to run in staging or production. Admin-only access to the dashboard and trace endpoints requires the signed `role=admin` claim.
+
+Memory namespaces are derived from the authenticated `sub`; caller-supplied user IDs cannot select another user's namespace. Device registration and revocation enforce device ownership. High-risk action approvals are short-lived, one-time, and bound to the exact intent payload, device, and user. Replaying or modifying an approved intent is denied.
 
 Never put provider API keys in:
 - Android app bundle
@@ -87,3 +97,12 @@ Keep only an audit tombstone if required by the chosen privacy policy.
 - sandbox escape tests
 - prompt injection tests
 - device action abuse tests
+
+
+## 9. Phase 1 implementation notes
+
+- The in-process mock sandbox is test-only. Non-test environments use the E2B adapter and fail closed when `E2B_API_KEY` or the provider dependency is missing.
+- Network-enabled sandbox execution is denied until provider-level egress isolation is implemented and tested.
+- The AST checker is defense-in-depth, not a security boundary; isolation must be provided by the external sandbox.
+- Device records, approval state, and audit records are still in-memory. This protects request authorization within one process but does not provide durable multi-worker revocation, distributed replay protection, or tamper-evident audit storage. Do not claim those properties until persistent transactional storage is implemented.
+- Run `pytest` and the dedicated security tests before merging. Then perform provider-backed E2B tests and production configuration checks in the target environment.

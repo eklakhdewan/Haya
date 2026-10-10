@@ -66,11 +66,15 @@ class SessionRegistry:
         self._sessions: dict[str, VoiceSession] = {}
 
     def get_or_create(self, session_id: str, user_id: str) -> VoiceSession:
-        if session_id not in self._sessions:
-            session = VoiceSession(session_id, user_id)
-            session.emit_event(RealtimeEventType.SESSION_STARTED, {"user_id": user_id})
-            self._sessions[session_id] = session
-        return self._sessions[session_id]
+        existing = self._sessions.get(session_id)
+        if existing is not None:
+            if existing.user_id != user_id:
+                raise PermissionError("Voice session belongs to another authenticated user.")
+            return existing
+        session = VoiceSession(session_id, user_id)
+        session.emit_event(RealtimeEventType.SESSION_STARTED, {"user_id": user_id})
+        self._sessions[session_id] = session
+        return session
 
     def remove(self, session_id: str) -> VoiceSession | None:
         session = self._sessions.pop(session_id, None)

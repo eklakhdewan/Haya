@@ -2,10 +2,11 @@
 
 import time
 from fastapi.testclient import TestClient
+from tests.security_helpers import auth_headers
 
 from orchestrator.main import app, stt_adapter
 
-client = TestClient(app)
+client = TestClient(app, headers=auth_headers("ws-user", "user"))
 
 
 def test_realtime_websocket_connection() -> None:
@@ -17,7 +18,10 @@ def test_realtime_websocket_connection() -> None:
         [("Hello Hina", True)],
     )
 
-    with client.websocket_connect(f"/v1/realtime/ws?session_id={session_id}&user_id=ws-user") as ws:
+    token = client.headers["Authorization"].split(" ", 1)[1]
+    with client.websocket_connect(
+        f"/v1/realtime/ws?session_id={session_id}&user_id=ws-user&access_token={token}"
+    ) as ws:
         # First message sent on session connect
         first_evt = ws.receive_json()
         assert first_evt["event_type"] == "SESSION_STARTED"

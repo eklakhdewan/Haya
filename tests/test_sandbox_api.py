@@ -1,10 +1,17 @@
 """Integration tests for sandbox and coder API endpoints."""
 
 from fastapi.testclient import TestClient
-from orchestrator.main import app, llm_provider
+from tests.security_helpers import auth_headers
+import orchestrator.main as main_module
+from orchestrator.main import app, llm_provider, coder_agent
+from orchestrator.sandbox.mock_sandbox import MockSandboxAdapter
 from orchestrator.providers.mock_llm import MockLLMProvider
 
-client = TestClient(app)
+# This suite validates the deterministic test adapter, not real sandbox isolation.
+_test_sandbox = MockSandboxAdapter()
+main_module.sandbox_adapter = _test_sandbox
+coder_agent.sandbox = _test_sandbox
+client = TestClient(app, headers=auth_headers("sandbox-user", "user"))
 
 
 def test_api_sandbox_execute_success() -> None:

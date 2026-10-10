@@ -68,11 +68,15 @@ Hina v1 is complete only when:
 - CI passes formatting, type checking, unit tests and security checks;
 - deployment can be reproduced from a clean machine.
 
-## 4. Repository
+## 4. Security status
+
+Phase 1 security work is tracked in [`docs/PHASE1_SECURITY_EXECUTION_REPORT.md`](docs/PHASE1_SECURITY_EXECUTION_REPORT.md). Authentication now requires a configured JWT secret; copy `.env.example` and replace its placeholder before starting the API. Do not treat the branch as production-ready until the report's test and provider-validation evidence is complete. See [`SECURITY.md`](SECURITY.md) for the threat model and operational constraints.
+
+## 5. Repository
 
 See `docs/REPO_STRUCTURE.md`.
 
-## 5. Start here
+## 6. Start here
 
 1. Read `docs/PROJECT_BRIEF.md`.
 2. Read `docs/PRD.md`.
@@ -82,7 +86,7 @@ See `docs/REPO_STRUCTURE.md`.
 6. Start local infrastructure with `docker compose -f memory_core/docker-compose.yml up -d`.
 7. Run the deterministic text-agent tests before enabling external voice providers.
 
-## 6. Important architecture correction
+## 7. Important architecture correction
 
 The original specification mixed WebRTC, raw WebSocket semantics, Rust, Python, React Native, Kotlin and Node.js without defining ownership boundaries. This rebuild makes the boundaries explicit.
 
@@ -90,7 +94,7 @@ For the first production path, use a managed WebRTC transport such as LiveKit or
 
 Rust remains available for a custom low-level gateway only if measured profiling proves it is necessary.
 
-## 7. Current model/provider baseline
+## 8. Current model/provider baseline
 
 Provider choice is intentionally configurable. As of September 2026, Google's Gemini API lists Gemini 3.8 Live for low-latency live voice and Gemini 3.8 Flash for agentic workloads; model IDs are explicitly versioned and production systems should avoid unstable aliases. citeturn1search0turn1search4
 
@@ -100,7 +104,7 @@ Qdrant supports dense+sparse hybrid retrieval and RRF fusion, which is the inten
 
 Neo4j supports vector indexes alongside graph queries; current Neo4j documentation recommends the Cypher `SEARCH` syntax for vector queries on recent releases. citeturn0search12
 
-## 8. Non-negotiable safety rule
+## 9. Non-negotiable safety rule
 
 Hina may be autonomous in planning, but **authority is bounded**. Sending a message, placing a call, changing device settings, executing code with network access, or modifying persistent memory requires an explicit policy decision and, where configured, human confirmation.
 "# Haya" 
