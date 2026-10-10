@@ -17,6 +17,24 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: hina_test
+          POSTGRES_USER: hina
+          POSTGRES_PASSWORD: hina_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hina -d hina_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://hina:hina_test_password@localhost:5432/hina_test
+      ENVIRONMENT: testing
+      JWT_SECRET: test-only-secret-for-hina-security-ci-only
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,5 +46,7 @@ jobs:
         run: python -m pip install --upgrade pip && pip install -r requirements-dev.txt
       - name: Compile Python sources
         run: python -m compileall -q orchestrator tests
-      - name: Run test suite
+      - name: Verify migration head
+        run: alembic upgrade head && alembic current
+      - name: Run test suite including PostgreSQL integration
         run: pytest -q
