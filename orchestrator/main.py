@@ -4,7 +4,7 @@ import asyncio
 import inspect
 import time
 from contextlib import asynccontextmanager
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
