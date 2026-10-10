@@ -33,3 +33,8 @@ tenacity>=9,<10
 opentelemetry-api>=1.36,<2
 opentelemetry-sdk>=1.36,<2
 opentelemetry-exporter-otlp>=1.36,<2
+
+# Persistent security state
+SQLAlchemy>=2.0,<3
+asyncpg>=0.29,<1
+alembic>=1.13,<2
