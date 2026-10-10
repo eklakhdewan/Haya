@@ -9,7 +9,7 @@ orjson>=3.10,<4
 python-dotenv>=1.1,<2
 
 # Agent orchestration
-langgraph>=0.6,<1
+langgraph>=1.0.10,<2
 langchain-core>=0.3,<2
 
 # Providers / AI
