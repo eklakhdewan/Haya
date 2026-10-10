@@ -17,12 +17,12 @@ class QdrantVectorAdapter(VectorStoreAdapter):
         self.url = url
         self.api_key = api_key
         self.collection_name = collection_name
-        self._client = None
+        self._client: Any | None = None
 
     def _get_client(self) -> Any:
         if self._client is None:
             try:
-                from qdrant_client import AsyncQdrantClient  # type: ignore[import-not-found]
+                from qdrant_client import AsyncQdrantClient
                 self._client = AsyncQdrantClient(url=self.url, api_key=self.api_key or None)
             except Exception as e:
                 raise ConnectionError(f"Failed to initialize Qdrant client: {e}")
@@ -30,7 +30,7 @@ class QdrantVectorAdapter(VectorStoreAdapter):
 
     async def upsert(self, record: MemoryRecord, text: str) -> None:
         client = self._get_client()
-        from qdrant_client.models import PointStruct  # type: ignore[import-not-found]
+        from qdrant_client.models import PointStruct
 
         # In production, embeddings are calculated via sentence-transformers or Gemini
         # Here we mock a 384-dimension pseudo-vector for collection storage if embeddings are computed
@@ -53,7 +53,7 @@ class QdrantVectorAdapter(VectorStoreAdapter):
 
     async def search(self, user_id: str, query: str, top_k: int = 5) -> list[MemoryQueryItem]:
         client = self._get_client()
-        from qdrant_client.models import Filter, FieldCondition, MatchValue  # type: ignore[import-not-found]
+        from qdrant_client.models import Filter, FieldCondition, MatchValue
 
         user_filter = Filter(
             must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))]
@@ -82,7 +82,7 @@ class QdrantVectorAdapter(VectorStoreAdapter):
 
     async def delete(self, memory_id: str) -> bool:
         client = self._get_client()
-        from qdrant_client.models import PointIdsList  # type: ignore[import-not-found]
+        from qdrant_client.models import PointIdsList
 
         res = await client.delete(
             collection_name=self.collection_name,
