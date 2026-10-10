@@ -10,6 +10,7 @@ from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from orchestrator.core.config import get_settings
 from orchestrator.core.database import DatabaseRuntime
@@ -118,30 +119,44 @@ class PersistentDeviceManager:
             record = await session.scalar(
                 select(DeviceRecord).where(DeviceRecord.device_id == device_id).with_for_update()
             )
-            if record and record.user_id != user_id:
+            if record is None:
+                # SELECT FOR UPDATE cannot lock a row that does not exist. Use an
+                # atomic insert so simultaneous first registrations cannot race into
+                # an unhandled primary-key violation or overwrite another owner.
+                await session.execute(
+                    pg_insert(DeviceRecord)
+                    .values(
+                        device_id=device_id,
+                        user_id=user_id,
+                        name=name,
+                        registered_at=now,
+                        is_revoked=False,
+                    )
+                    .on_conflict_do_nothing(index_elements=[DeviceRecord.device_id])
+                )
+                record = await session.scalar(
+                    select(DeviceRecord)
+                    .where(DeviceRecord.device_id == device_id)
+                    .with_for_update()
+                )
+                if record is None:
+                    raise RuntimeError("Device registration did not produce a persisted row.")
+
+            if record.user_id != user_id:
                 raise PolicyDeniedError("Device ID is already owned by another user.")
-            if record and not record.is_revoked:
+            if not record.is_revoked:
                 record.name = name
                 return self._device_info(record)
-            if record:
-                record.name = name
-                record.registered_at = now
-                record.is_revoked = False
-                record.revoked_at = None
-                await session.execute(
-                    delete(PendingConfirmationRecord).where(
-                        PendingConfirmationRecord.device_id == device_id
-                    )
+
+            record.name = name
+            record.registered_at = now
+            record.is_revoked = False
+            record.revoked_at = None
+            await session.execute(
+                delete(PendingConfirmationRecord).where(
+                    PendingConfirmationRecord.device_id == device_id
                 )
-            else:
-                record = DeviceRecord(
-                    device_id=device_id,
-                    user_id=user_id,
-                    name=name,
-                    registered_at=now,
-                    is_revoked=False,
-                )
-                session.add(record)
+            )
             await session.flush()
             return self._device_info(record)
 
