@@ -1,7 +1,6 @@
 """Configuration management for Hina using Pydantic Settings."""
 
 from enum import Enum
-import os
 from typing import Literal
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -47,7 +46,7 @@ class Settings(BaseSettings):
     qdrant_api_key: str = Field(default="", description="Qdrant API key if secured")
     neo4j_uri: str = Field(default="bolt://localhost:7687", description="Neo4j connection URI")
     neo4j_username: str = Field(default="neo4j", description="Neo4j username")
-    neo4j_password: str = Field(default="change-me", description="Neo4j password")
+    neo4j_password: str = Field(default="", description="Neo4j password")
     redis_url: str = Field(default="redis://localhost:6379/0", description="Redis connection URL")
 
     # Code Execution Sandbox
@@ -57,7 +56,11 @@ class Settings(BaseSettings):
     sandbox_max_repairs: int = 2
 
     # Security & Tokens
-    jwt_secret: str = Field(default_factory=lambda: os.getenv("JWT_SECRET", ""), min_length=32, description="JWT HS256 signing secret; set JWT_SECRET to a unique random value")
+    jwt_secret: str = Field(
+        default="",
+        min_length=32,
+        description="JWT HS256 signing secret; set JWT_SECRET to a unique random value",
+    )
     jwt_issuer: str = "hina-orchestrator"
     jwt_audience: str = "hina-api"
     device_token_ttl_seconds: int = 300
@@ -65,10 +68,23 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_security_configuration(self) -> "Settings":
-        if self.jwt_secret in {"replace-with-a-long-random-secret", "insecure-dev-secret-replace-in-production"}:
-            raise ValueError("Replace the JWT_SECRET placeholder with a unique random secret.")
+        if not self.jwt_secret.strip():
+            raise ValueError("JWT_SECRET must be set to a secure random value.")
+        if self.jwt_secret in {
+            "replace-with-a-long-random-secret",
+            "insecure-dev-secret-replace-in-production",
+        }:
+            raise ValueError(
+                "Replace the JWT_SECRET placeholder with a unique random secret."
+            )
+        if len(self.jwt_secret) < 32:
+            raise ValueError("JWT_SECRET must be at least 32 characters long.")
+
+        if self.environment == Environment.PRODUCTION and not self.neo4j_password.strip():
+            raise ValueError("Production requires a non-empty NEO4J_PASSWORD.")
         if self.environment == Environment.PRODUCTION and self.neo4j_password == "change-me":
             raise ValueError("Production requires a non-default NEO4J_PASSWORD.")
+
         if self.environment == Environment.PRODUCTION:
             if not self.database_url.strip():
                 raise ValueError(
