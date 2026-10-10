@@ -199,7 +199,11 @@ async def realtime_ws(websocket: WebSocket, session_id: str | None = None, user_
     user_id = authenticated_user_id
     await websocket.accept()
     s_id = session_id or str(uuid4())
-    session = voice_gateway.sessions.get_or_create(s_id, user_id)
+    try:
+        session = voice_gateway.sessions.get_or_create(s_id, user_id)
+    except PermissionError:
+        await websocket.close(code=4403, reason="Voice session belongs to another user")
+        return
 
     async def event_sender() -> None:
         try:
