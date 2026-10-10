@@ -2,10 +2,11 @@
 
 from uuid import uuid4
 from fastapi.testclient import TestClient
+from tests.security_helpers import auth_headers
 
 from orchestrator.main import app
 
-client = TestClient(app)
+client = TestClient(app, headers=auth_headers("trace-user", "admin"))
 
 
 def test_dashboard_ui_served() -> None:
