@@ -2,10 +2,11 @@
 
 import time
 from fastapi.testclient import TestClient
+from tests.security_helpers import auth_headers
 
 from orchestrator.main import app, stt_adapter
 
-client = TestClient(app)
+client = TestClient(app, headers=auth_headers("ws-user", "user"))
 
 
 def test_realtime_websocket_connection() -> None:
