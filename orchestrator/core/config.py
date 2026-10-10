@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # General
     environment: Environment = Environment.DEVELOPMENT
     log_level: str = "INFO"
-    api_host: str = "0.0.0.0"
+    api_host: str = "127.0.0.1"
     api_port: int = 8000
 
     # LLM Provider
