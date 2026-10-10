@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     tts_provider: str = Field(default="deepgram", description="Streaming TTS provider")
 
     # Memory Infrastructure
+    # Persistent Security Storage
+    database_url: str = Field(
+        default="",
+        description="PostgreSQL connection URL for persistent security state",
+        repr=False,
+    )
     qdrant_url: str = Field(default="http://localhost:6333", description="Qdrant endpoint")
     qdrant_api_key: str = Field(default="", description="Qdrant API key if secured")
     neo4j_uri: str = Field(default="bolt://localhost:7687", description="Neo4j connection URI")
@@ -62,6 +68,18 @@ class Settings(BaseSettings):
             raise ValueError("Replace the JWT_SECRET placeholder with a unique random secret.")
         if self.environment == Environment.PRODUCTION and self.neo4j_password == "change-me":
             raise ValueError("Production requires a non-default NEO4J_PASSWORD.")
+        if self.environment == Environment.PRODUCTION:
+            if not self.database_url.strip():
+                raise ValueError(
+                    "Production requires DATABASE_URL for persistent security storage."
+                )
+            if not self.database_url.startswith(
+                ("postgresql://", "postgresql+asyncpg://")
+            ):
+                raise ValueError(
+                    "DATABASE_URL must use a PostgreSQL connection URL."
+                )
+
         return self
 
     # Observability

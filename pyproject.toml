@@ -30,6 +30,9 @@ dependencies = [
   "opentelemetry-api>=1.36,<2",
   "opentelemetry-sdk>=1.36,<2",
   "opentelemetry-exporter-otlp>=1.36,<2",
+  "SQLAlchemy>=2.0,<3",
+  "asyncpg>=0.29,<1",
+  "alembic>=1.13,<2",
 ]
 
 [tool.ruff]
@@ -47,3 +50,6 @@ warn_unused_configs = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+include = ["orchestrator*"]
