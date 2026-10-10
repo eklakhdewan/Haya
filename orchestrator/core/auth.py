@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 import jwt
-from fastapi import HTTPException, Request
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import InvalidTokenError
 
@@ -47,9 +47,7 @@ def decode_access_token(token: str) -> dict[str, Any]:
 
 
 async def require_principal(
-    credentials: HTTPAuthorizationCredentials | None = __import__(
-        "fastapi.security", fromlist=["HTTPAuthorizationCredentials"]
-    ).HTTPAuthorizationCredentials = None,
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> dict[str, Any]:
     """FastAPI dependency returning validated claims from a Bearer token."""
     if credentials is None or credentials.scheme.lower() != "bearer":
