@@ -352,7 +352,7 @@ async def run_coder_task(req: CoderTaskRequest) -> APIResponse[dict[str, Any]]:
 
 # --- Memory Endpoints ---
 class MemoryQueryApiRequest(BaseModel):
-    user_id: str = "default-user"
+    user_id: str | None = None
     query: str
     top_k: int = 5
     include_graph: bool = True
@@ -362,6 +362,8 @@ class MemoryQueryApiRequest(BaseModel):
 async def query_memory(req: MemoryQueryApiRequest, request: Request) -> APIResponse[MemoryQueryResponse]:
     """Perform memory retrieval only within the authenticated user's namespace."""
     user_id = _principal_user_id(request)
+    if req.user_id is not None and req.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Cannot query another user's memory.")
     items = await memory_lifecycle.query(
         user_id=user_id,
         query_text=req.query,
@@ -391,7 +393,7 @@ async def extract_memory(req: MemoryExtractRequest) -> APIResponse[MemoryExtract
 
 
 class MemoryStoreRequest(BaseModel):
-    user_id: str = "default-user"
+    user_id: str | None = None
     candidate: MemoryCandidate
 
 
@@ -399,6 +401,8 @@ class MemoryStoreRequest(BaseModel):
 async def store_memory(req: MemoryStoreRequest, request: Request) -> APIResponse[MemoryRecord]:
     """Persist a memory candidate only in the authenticated user's namespace."""
     user_id = _principal_user_id(request)
+    if req.user_id is not None and req.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Cannot store memory in another user's namespace.")
     rec = await memory_lifecycle.store_candidate(user_id=user_id, candidate=req.candidate)
     return APIResponse(data=rec)
 
