@@ -103,3 +103,4 @@ Neo4j supports vector indexes alongside graph queries; current Neo4j documentati
 ## 8. Non-negotiable safety rule
 
 Hina may be autonomous in planning, but **authority is bounded**. Sending a message, placing a call, changing device settings, executing code with network access, or modifying persistent memory requires an explicit policy decision and, where configured, human confirmation.
+"# Haya" 
