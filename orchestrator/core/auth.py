@@ -5,7 +5,7 @@ Use short-lived HS256 tokens and rotate JWT_SECRET through deployment secrets.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import jwt
 from fastapi import Depends, HTTPException, Request
@@ -43,7 +43,7 @@ def decode_access_token(token: str) -> dict[str, Any]:
             detail={"code": "AUTH_REQUIRED", "message": "Token subject is invalid."},
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return dict(claims)
+    return cast(dict[str, Any], claims)
 
 
 async def require_principal(
@@ -64,4 +64,4 @@ def principal_from_request(request: Request) -> dict[str, Any]:
     principal = getattr(request.state, "principal", None)
     if not principal:
         raise HTTPException(status_code=401, detail="Authentication required.")
-    return principal
+    return cast(dict[str, Any], principal)
