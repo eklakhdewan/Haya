@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Index, JSON, String
+from sqlalchemy import Boolean, DateTime, Index, JSON, String, false
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -21,7 +21,9 @@ class DeviceRecord(SecurityBase):
     user_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     registered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    is_revoked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_revoked: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
@@ -36,7 +38,9 @@ class PendingConfirmationRecord(SecurityBase):
     device_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     intent_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-    confirmed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    confirmed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
