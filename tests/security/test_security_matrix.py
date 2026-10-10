@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 
 from orchestrator.agents.critic import Critic
-from orchestrator.core.errors import InvalidSchemaError, PolicyDeniedError
+from orchestrator.core.errors import ConfirmationRequiredError, InvalidSchemaError, PolicyDeniedError
 from orchestrator.core.models import (
     IntentType,
     MemoryCandidate,
@@ -94,7 +94,7 @@ def test_sec_05_sms_target_changed_after_approval() -> None:
             nonce="nonce_sec5_orig_12345678",
             confirmation_required=True,
         )
-        with pytest.raises(Exception) as challenge:
+        with pytest.raises(ConfirmationRequiredError) as challenge:
             await manager.execute_intent(original_intent, user_id=user_id)
         challenge_token = challenge.value.details["challenge_token"]
         assert manager.confirm_action(original_intent.intent_id, challenge_token, user_id=user_id)
