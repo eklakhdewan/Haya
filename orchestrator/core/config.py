@@ -1,6 +1,7 @@
 """Configuration management for Hina using Pydantic Settings."""
 
 from enum import Enum
+import os
 from typing import Literal
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -56,7 +57,7 @@ class Settings(BaseSettings):
     sandbox_max_repairs: int = 2
 
     # Security & Tokens
-    jwt_secret: str = Field(min_length=32, description="JWT HS256 signing secret; set JWT_SECRET to a unique random value")
+    jwt_secret: str = Field(default_factory=lambda: os.getenv("JWT_SECRET", ""), min_length=32, description="JWT HS256 signing secret; set JWT_SECRET to a unique random value")
     jwt_issuer: str = "hina-orchestrator"
     jwt_audience: str = "hina-api"
     device_token_ttl_seconds: int = 300
