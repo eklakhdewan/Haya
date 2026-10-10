@@ -2,7 +2,7 @@
 
 import asyncio
 import time
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -12,7 +12,7 @@ from orchestrator.agents.coder import CoderAgent
 from orchestrator.agents.device import DeviceAgent
 from orchestrator.agents.supervisor import Supervisor
 from orchestrator.core.auth import decode_access_token
-from orchestrator.core.config import get_settings
+from orchestrator.core.config import Environment, get_settings
 from orchestrator.core.errors import HinaError
 from orchestrator.dashboard import DASHBOARD_HTML
 from orchestrator.observability import trace_manager
@@ -105,10 +105,12 @@ supervisor = Supervisor(llm_provider=llm_provider)
 
 # Initialize Sandbox adapter
 sandbox_adapter: SandboxAdapter
-if settings.e2b_api_key:
-    sandbox_adapter = E2BSandboxAdapter(api_key=settings.e2b_api_key)
-else:
+if settings.environment == Environment.TESTING:
+    # The mock is for deterministic tests only; it is not a security boundary.
     sandbox_adapter = MockSandboxAdapter()
+else:
+    # Fail closed without E2B credentials rather than execute untrusted code in-process.
+    sandbox_adapter = E2BSandboxAdapter(api_key=settings.e2b_api_key)
 
 # Initialize Coder Agent
 coder_agent = CoderAgent(
@@ -309,9 +311,9 @@ async def execute_sandbox(req: SandboxExecuteRequest) -> APIResponse[SandboxExec
 
 
 class CoderTaskRequest(BaseModel):
-    task: str
-    timeout_ms: int = 5000
-    network: str = "disabled"
+    task: str = Field(min_length=1, max_length=20_000)
+    timeout_ms: int = Field(default=5000, ge=500, le=60_000)
+    network: Literal["enabled", "disabled"] = "disabled"
 
 
 @app.post("/v1/coder/task", response_model=APIResponse[dict[str, Any]])
