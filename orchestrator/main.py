@@ -3,6 +3,7 @@
 import asyncio
 import inspect
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any, Literal, cast
 from uuid import uuid4
@@ -54,7 +55,7 @@ from orchestrator.tools.builtin import CalculatorTool, TimeTool
 from orchestrator.tools.registry import ToolRegistry
 
 @asynccontextmanager
-async def app_lifespan(app: FastAPI):
+async def app_lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize and dispose persistent security storage with the application."""
     global device_manager
     original_device_manager = device_manager
@@ -189,7 +190,7 @@ tool_registry.register(TimeTool())
 
 # Initialize Device subsystem
 device_validator = MobileIntentValidator()
-device_manager = DeviceManager(validator=device_validator)
+device_manager: Any = DeviceManager(validator=device_validator)
 device_agent = DeviceAgent(llm_provider=llm_provider)
 
 
