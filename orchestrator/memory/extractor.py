@@ -1,8 +1,9 @@
 """Memory Candidate Extractor implementing the Memory Agent contract."""
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
+
 from pydantic import BaseModel, Field
 
 from orchestrator.core.models import (
@@ -54,7 +55,7 @@ class MemoryExtractor:
         """Fast offline rule-based extraction for deterministic test environments."""
         candidates: list[MemoryCandidate] = []
         lower = text.lower()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Preference patterns
         pref_match = re.search(r"prefer\s+([a-zA-Z0-9\s]+?)(?:\s+over|\s+instead|\.|$)", lower)

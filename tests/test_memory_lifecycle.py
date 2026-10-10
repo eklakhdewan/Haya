@@ -1,7 +1,6 @@
 """Tests for MemoryExtractor, LifecycleManager, provenance, and cascading deletion."""
 
 import asyncio
-from uuid import uuid4
 
 from orchestrator.core.models import (
     MemoryCandidate,

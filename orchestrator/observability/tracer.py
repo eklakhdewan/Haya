@@ -1,16 +1,14 @@
 """OpenTelemetry distributed tracing and latency timeline collection."""
 
-import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
 try:
     from opentelemetry import trace
-    from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
     from opentelemetry.sdk.resources import Resource
+    from opentelemetry.sdk.trace import TracerProvider
 
     # Initialize SDK TracerProvider if not already set
     if not isinstance(trace.get_tracer_provider(), TracerProvider):
@@ -50,13 +48,15 @@ class TraceManager:
         self._traces: dict[str, TraceRecord] = {}
         self._order: list[str] = []
 
-    def start_trace(self, session_id: str, operation: str, trace_id: str | None = None) -> TraceRecord:
+    def start_trace(
+        self, session_id: str, operation: str, trace_id: str | None = None
+    ) -> TraceRecord:
         t_id = trace_id or str(uuid4())
         rec = TraceRecord(
             trace_id=t_id,
             session_id=session_id,
             operation=operation,
-            start_time=datetime.now(timezone.utc).isoformat(),
+            start_time=datetime.now(UTC).isoformat(),
         )
         self._traces[t_id] = rec
         self._order.append(t_id)
@@ -81,13 +81,15 @@ class TraceManager:
                 StageTiming(
                     stage=stage,
                     duration_ms=round(duration_ms, 2),
-                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    timestamp=datetime.now(UTC).isoformat(),
                     metadata=metadata or {},
                 )
             )
             rec.total_duration_ms = round(sum(s.duration_ms for s in rec.stages), 2)
 
-    def finish_trace(self, trace_id: str, status: str = "success", error: str | None = None) -> None:
+    def finish_trace(
+        self, trace_id: str, status: str = "success", error: str | None = None
+    ) -> None:
         rec = self._traces.get(trace_id)
         if rec:
             rec.status = status

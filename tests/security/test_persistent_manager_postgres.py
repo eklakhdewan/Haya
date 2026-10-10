@@ -3,18 +3,18 @@
 These tests are skipped unless DATABASE_URL points to a dedicated disposable test DB.
 CI provisions an isolated PostgreSQL service and applies the real Alembic migration first.
 """
+
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
 import os
-from datetime import datetime, timedelta, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
-
-from sqlalchemy import delete
 
 import pytest
 import pytest_asyncio
+from sqlalchemy import delete
 
 from orchestrator.core.database import create_database_runtime
 from orchestrator.core.errors import ConfirmationRequiredError, PolicyDeniedError
@@ -57,9 +57,14 @@ async def persistent_manager() -> AsyncIterator[PersistentDeviceManager]:
         await runtime.dispose()
 
 
-def make_intent(device_id: str, *, intent_type: IntentType = IntentType.OPEN_APP,
-                intent_id: str | None = None, nonce: str | None = None) -> MobileIntent:
-    now = datetime.now(timezone.utc)
+def make_intent(
+    device_id: str,
+    *,
+    intent_type: IntentType = IntentType.OPEN_APP,
+    intent_id: str | None = None,
+    nonce: str | None = None,
+) -> MobileIntent:
+    now = datetime.now(UTC)
     return MobileIntent(
         intent_id=intent_id or str(uuid4()),
         device_id=device_id,
@@ -72,7 +77,9 @@ def make_intent(device_id: str, *, intent_type: IntentType = IntentType.OPEN_APP
 
 
 @pytest.mark.asyncio
-async def test_device_ownership_and_revocation_survive_manager_restart(persistent_manager: PersistentDeviceManager) -> None:
+async def test_device_ownership_and_revocation_survive_manager_restart(
+    persistent_manager: PersistentDeviceManager,
+) -> None:
     device_id = f"device-{uuid4()}"
     user_id = f"user-{uuid4()}"
     await persistent_manager.register_device(device_id, user_id, "Test device")
@@ -85,7 +92,9 @@ async def test_device_ownership_and_revocation_survive_manager_restart(persisten
 
 
 @pytest.mark.asyncio
-async def test_high_risk_confirmation_is_single_use(persistent_manager: PersistentDeviceManager) -> None:
+async def test_high_risk_confirmation_is_single_use(
+    persistent_manager: PersistentDeviceManager,
+) -> None:
     device_id = f"device-{uuid4()}"
     user_id = f"user-{uuid4()}"
     await persistent_manager.register_device(device_id, user_id)
@@ -104,7 +113,9 @@ async def test_high_risk_confirmation_is_single_use(persistent_manager: Persiste
 
 
 @pytest.mark.asyncio
-async def test_nonce_cannot_be_reused_for_a_different_intent(persistent_manager: PersistentDeviceManager) -> None:
+async def test_nonce_cannot_be_reused_for_a_different_intent(
+    persistent_manager: PersistentDeviceManager,
+) -> None:
     device_id = f"device-{uuid4()}"
     user_id = f"user-{uuid4()}"
     await persistent_manager.register_device(device_id, user_id)
@@ -119,7 +130,9 @@ async def test_nonce_cannot_be_reused_for_a_different_intent(persistent_manager:
 
 
 @pytest.mark.asyncio
-async def test_concurrent_replay_only_allows_one_completion(persistent_manager: PersistentDeviceManager) -> None:
+async def test_concurrent_replay_only_allows_one_completion(
+    persistent_manager: PersistentDeviceManager,
+) -> None:
     device_id = f"device-{uuid4()}"
     user_id = f"user-{uuid4()}"
     await persistent_manager.register_device(device_id, user_id)
@@ -138,7 +151,9 @@ async def test_concurrent_replay_only_allows_one_completion(persistent_manager: 
 
 
 @pytest.mark.asyncio
-async def test_concurrent_registration_cannot_claim_device_for_two_users(persistent_manager: PersistentDeviceManager) -> None:
+async def test_concurrent_registration_cannot_claim_device_for_two_users(
+    persistent_manager: PersistentDeviceManager,
+) -> None:
     device_id = f"device-{uuid4()}"
     users = [f"user-{uuid4()}", f"user-{uuid4()}"]
     outcomes = await asyncio.gather(

@@ -1,7 +1,7 @@
 """Unit tests for Vector and Graph store adapters."""
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from orchestrator.core.models import MemoryRecord
@@ -11,7 +11,7 @@ from orchestrator.memory.mock_memory import InMemoryGraphStore, InMemoryVectorSt
 def test_in_memory_vector_store() -> None:
     async def _run() -> None:
         v_store = InMemoryVectorStore()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         user_id = "test-user-v"
 
         rec1 = MemoryRecord(
@@ -65,7 +65,7 @@ def test_in_memory_vector_store() -> None:
 def test_in_memory_graph_store() -> None:
     async def _run() -> None:
         g_store = InMemoryGraphStore()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         user_id = "test-user-g"
 
         rec = MemoryRecord(

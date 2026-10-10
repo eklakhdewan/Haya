@@ -3,6 +3,7 @@
 Tokens are issued by a trusted identity component, not by public API endpoints.
 Use short-lived HS256 tokens and rotate JWT_SECRET through deployment secrets.
 """
+
 from __future__ import annotations
 
 from typing import Any, cast

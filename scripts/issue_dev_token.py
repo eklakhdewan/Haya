@@ -1,4 +1,5 @@
 """Issue a short-lived JWT for local development only; never expose this as an API."""
+
 import argparse
 import time
 
@@ -9,7 +10,9 @@ from orchestrator.core.config import Environment, get_settings
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--subject", required=True, help="Local user ID to place in the token subject")
+    parser.add_argument(
+        "--subject", required=True, help="Local user ID to place in the token subject"
+    )
     parser.add_argument("--role", choices=("user", "admin"), default="user")
     args = parser.parse_args()
 

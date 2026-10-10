@@ -1,4 +1,5 @@
 """Async SQLAlchemy infrastructure for persistent security state."""
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator

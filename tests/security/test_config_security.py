@@ -1,11 +1,9 @@
-
 from typing import Any
 
 import pytest
 from pydantic import ValidationError
 
 from orchestrator.core.config import Settings
-
 
 VALID_JWT_SECRET = "test-only-random-secret-not-for-production"
 VALID_NEO4J_PASSWORD = "test-only-neo4j-password"

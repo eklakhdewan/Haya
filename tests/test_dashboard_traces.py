@@ -1,10 +1,11 @@
 """Integration tests for Developer Dashboard UI and OpenTelemetry trace retrieval."""
 
 from uuid import uuid4
+
 from fastapi.testclient import TestClient
-from tests.security_helpers import auth_headers
 
 from orchestrator.main import app
+from tests.security_helpers import auth_headers
 
 client = TestClient(app, headers=auth_headers("trace-user", "admin"))
 
@@ -58,6 +59,7 @@ def test_traces_lifecycle_and_api() -> None:
 
 def test_voice_turn_trace_recorded() -> None:
     import asyncio
+
     from orchestrator.main import voice_gateway
     from orchestrator.observability import trace_manager
 
@@ -78,4 +80,3 @@ def test_voice_turn_trace_recorded() -> None:
     assert "intent_classification" in stage_names
     assert "specialist_execution" in stage_names
     assert "tts_synthesis" in stage_names
-

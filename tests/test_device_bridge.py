@@ -1,7 +1,7 @@
 """Tests for MobileIntentValidator, DeviceManager, DeviceAgent, and confirmation gates."""
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -9,7 +9,6 @@ import pytest
 from orchestrator.agents.device import DeviceAgent
 from orchestrator.core.errors import (
     ConfirmationRequiredError,
-    InvalidSchemaError,
     PolicyDeniedError,
 )
 from orchestrator.core.models import IntentType, MobileIntent
@@ -20,7 +19,7 @@ from orchestrator.providers.mock_llm import MockLLMProvider
 
 def test_intent_validator_valid_and_replay() -> None:
     validator = MobileIntentValidator()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     intent = MobileIntent(
         device_id=str(uuid4()),
         intent_type=IntentType.OPEN_APP,
@@ -40,7 +39,7 @@ def test_intent_validator_valid_and_replay() -> None:
 
 def test_intent_validator_expired() -> None:
     validator = MobileIntentValidator()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expired_intent = MobileIntent(
         device_id=str(uuid4()),
         intent_type=IntentType.OPEN_APP,
@@ -65,7 +64,7 @@ def test_device_manager_flow() -> None:
         assert dev_info.is_revoked is False
         assert manager.is_device_authorized(device_id) is True
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # 2. Low-risk intent (OPEN_APP) executes directly
         open_intent = MobileIntent(

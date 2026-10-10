@@ -1,7 +1,8 @@
 """Deterministic Mock LLM Provider for offline testing and golden benchmark evaluation."""
 
 import re
-from typing import Any, Callable, TypeVar
+from typing import TypeVar
+
 from pydantic import BaseModel
 
 from orchestrator.core.models import RouteType, SupervisorOutput
@@ -17,13 +18,45 @@ class MockLLMProvider(LLMProvider):
         self._text_responses: dict[str, str] = {}
         self._pattern_routes: list[tuple[re.Pattern[str], RouteType, float, bool]] = [
             # Memory patterns
-            (re.compile(r"\b(remember|store|save|forget|recall|what did I say about|preference|prefer|favorite|my dog|project milestones|dietary)\b", re.I), RouteType.MEMORY, 0.95, False),
+            (
+                re.compile(
+                    r"\b(remember|store|save|forget|recall|what did I say about|preference|prefer|favorite|my dog|project milestones|dietary)\b",
+                    re.I,
+                ),
+                RouteType.MEMORY,
+                0.95,
+                False,
+            ),
             # Coder patterns
-            (re.compile(r"\b(write a python script|code|function|debug|execute code|run this program|python)\b", re.I), RouteType.CODER, 0.98, False),
+            (
+                re.compile(
+                    r"\b(write a python script|code|function|debug|execute code|run this program|python)\b",
+                    re.I,
+                ),
+                RouteType.CODER,
+                0.98,
+                False,
+            ),
             # Device patterns
-            (re.compile(r"\b(send sms|text message|make a call|call|open app|wifi|bluetooth|setting|device)\b", re.I), RouteType.DEVICE, 0.97, True),
+            (
+                re.compile(
+                    r"\b(send sms|text message|make a call|call|open app|wifi|bluetooth|setting|device)\b",
+                    re.I,
+                ),
+                RouteType.DEVICE,
+                0.97,
+                True,
+            ),
             # Tool patterns
-            (re.compile(r"\b(calculate|current time|what time|check.*time|search web|weather|convert)\b", re.I), RouteType.TOOL, 0.92, False),
+            (
+                re.compile(
+                    r"\b(calculate|current time|what time|check.*time|search web|weather|convert)\b",
+                    re.I,
+                ),
+                RouteType.TOOL,
+                0.92,
+                False,
+            ),
             # Default conversation
             (re.compile(r".*", re.I), RouteType.CONVERSATION, 0.85, False),
         ]

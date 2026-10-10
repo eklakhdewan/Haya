@@ -1,8 +1,9 @@
 """Integration tests for Memory API endpoints."""
 
 from fastapi.testclient import TestClient
-from tests.security_helpers import auth_headers
+
 from orchestrator.main import app
+from tests.security_helpers import auth_headers
 
 client = TestClient(app, headers=auth_headers("api-user-test", "user"))
 

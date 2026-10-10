@@ -1,6 +1,7 @@
 """Qdrant Vector Store Adapter for dense/sparse hybrid search."""
 
 from typing import Any
+
 from orchestrator.core.models import MemoryQueryItem, MemoryRecord
 from orchestrator.memory.base import VectorStoreAdapter
 
@@ -23,6 +24,7 @@ class QdrantVectorAdapter(VectorStoreAdapter):
         if self._client is None:
             try:
                 from qdrant_client import AsyncQdrantClient
+
                 self._client = AsyncQdrantClient(url=self.url, api_key=self.api_key or None)
             except Exception as e:
                 raise ConnectionError(f"Failed to initialize Qdrant client: {e}")
@@ -53,11 +55,9 @@ class QdrantVectorAdapter(VectorStoreAdapter):
 
     async def search(self, user_id: str, query: str, top_k: int = 5) -> list[MemoryQueryItem]:
         client = self._get_client()
-        from qdrant_client.models import Filter, FieldCondition, MatchValue
+        from qdrant_client.models import FieldCondition, Filter, MatchValue
 
-        user_filter = Filter(
-            must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))]
-        )
+        user_filter = Filter(must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))])
 
         query_vector = [0.1] * 384
         search_result = await client.search(

@@ -4,10 +4,11 @@ Revision ID: 0001_security_state
 Revises:
 Create Date: 2026-10-10
 """
+
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision = "0001_security_state"
 down_revision = None
@@ -110,16 +111,24 @@ def downgrade() -> None:
     op.drop_table("security_action_audit")
 
     op.drop_index("ix_security_completed_intents_user_id", table_name="security_completed_intents")
-    op.drop_index("ix_security_completed_intents_device_id", table_name="security_completed_intents")
+    op.drop_index(
+        "ix_security_completed_intents_device_id", table_name="security_completed_intents"
+    )
     op.drop_table("security_completed_intents")
 
     op.drop_index("ix_security_used_nonces_used_at", table_name="security_used_nonces")
     op.drop_index("ix_security_used_nonces_intent_id", table_name="security_used_nonces")
     op.drop_table("security_used_nonces")
 
-    op.drop_index("ix_security_pending_confirmations_expires_at", table_name="security_pending_confirmations")
-    op.drop_index("ix_security_pending_confirmations_device_id", table_name="security_pending_confirmations")
-    op.drop_index("ix_security_pending_confirmations_user_id", table_name="security_pending_confirmations")
+    op.drop_index(
+        "ix_security_pending_confirmations_expires_at", table_name="security_pending_confirmations"
+    )
+    op.drop_index(
+        "ix_security_pending_confirmations_device_id", table_name="security_pending_confirmations"
+    )
+    op.drop_index(
+        "ix_security_pending_confirmations_user_id", table_name="security_pending_confirmations"
+    )
     op.drop_table("security_pending_confirmations")
 
     op.drop_index("ix_security_devices_user_id", table_name="security_devices")

@@ -16,7 +16,7 @@ GOLDEN_FILE = Path(__file__).parent / "golden" / "router.jsonl"
 
 def load_golden_cases() -> list[dict[str, object]]:
     cases = []
-    with open(GOLDEN_FILE, "r", encoding="utf-8") as f:
+    with open(GOLDEN_FILE, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:

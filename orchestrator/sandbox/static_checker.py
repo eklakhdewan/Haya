@@ -86,28 +86,40 @@ class StaticSecurityChecker:
                     mod = alias.name.split(".")[0]
                     if mod in cls.ALWAYS_PROHIBITED_MODULES:
                         violations.append(f"Prohibited import detected: '{alias.name}'")
-                    if network == "disabled" and (mod in cls.NETWORK_MODULES or alias.name in cls.NETWORK_MODULES):
-                        violations.append(f"Network import prohibited while network is disabled: '{alias.name}'")
+                    if network == "disabled" and (
+                        mod in cls.NETWORK_MODULES or alias.name in cls.NETWORK_MODULES
+                    ):
+                        violations.append(
+                            f"Network import prohibited while network is disabled: '{alias.name}'"
+                        )
 
             elif isinstance(node, ast.ImportFrom):
                 mod = (node.module or "").split(".")[0]
                 if mod in cls.ALWAYS_PROHIBITED_MODULES:
                     violations.append(f"Prohibited from-import detected: '{node.module}'")
-                if network == "disabled" and (mod in cls.NETWORK_MODULES or node.module in cls.NETWORK_MODULES):
-                    violations.append(f"Network from-import prohibited while network is disabled: '{node.module}'")
+                if network == "disabled" and (
+                    mod in cls.NETWORK_MODULES or node.module in cls.NETWORK_MODULES
+                ):
+                    violations.append(
+                        f"Network from-import prohibited while network is disabled: '{node.module}'"
+                    )
 
             # Check attribute calls (e.g. os.system)
             elif isinstance(node, ast.Attribute):
                 if isinstance(node.value, ast.Name):
                     attr_pair = (node.value.id, node.attr)
                     if attr_pair in cls.DANGEROUS_ATTRIBUTES:
-                        violations.append(f"Dangerous system call detected: '{node.value.id}.{node.attr}'")
+                        violations.append(
+                            f"Dangerous system call detected: '{node.value.id}.{node.attr}'"
+                        )
 
             # Check string literals for sensitive file references
             elif isinstance(node, ast.Constant) and isinstance(node.value, str):
                 val_lower = node.value.lower()
                 for sensitive in cls.SENSITIVE_STRING_PATTERNS:
                     if sensitive in val_lower:
-                        violations.append(f"Access to sensitive resource/credential detected: '{sensitive}'")
+                        violations.append(
+                            f"Access to sensitive resource/credential detected: '{sensitive}'"
+                        )
 
         return StaticCheckResult(passed=(len(violations) == 0), violations=violations)

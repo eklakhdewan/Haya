@@ -1,12 +1,17 @@
 """Regression tests for Phase 1 authentication, ownership, approval, and sandbox gates."""
+
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
-from orchestrator.core.errors import ConfirmationRequiredError, PolicyDeniedError, ProviderUnavailableError
+from orchestrator.core.errors import (
+    ConfirmationRequiredError,
+    PolicyDeniedError,
+    ProviderUnavailableError,
+)
 from orchestrator.core.models import IntentType, MobileIntent
 from orchestrator.devices.manager import DeviceManager
 from orchestrator.main import app
@@ -15,7 +20,7 @@ from tests.security_helpers import auth_headers
 
 
 def make_intent(device_id: str, kind: IntentType = IntentType.OPEN_APP) -> MobileIntent:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {"target": "calculator"}
     if kind == IntentType.SEND_SMS:
         payload = {"target": "+15550001111", "body": "Approved message"}
@@ -72,7 +77,9 @@ def test_confirmation_is_bound_to_exact_intent_and_user() -> None:
         assert manager.confirm_action(intent.intent_id, token, user_id="alice") is True
         assert manager.confirm_action(intent.intent_id, token, user_id="alice") is False
 
-        modified = intent.model_copy(update={"payload": {"target": "+19990000000", "body": "Changed"}})
+        modified = intent.model_copy(
+            update={"payload": {"target": "+19990000000", "body": "Changed"}}
+        )
         with pytest.raises(PolicyDeniedError, match="does not match"):
             await manager.execute_intent(modified, user_id="alice")
 
@@ -82,7 +89,6 @@ def test_confirmation_is_bound_to_exact_intent_and_user() -> None:
             await manager.execute_intent(intent, user_id="alice")
 
     asyncio.run(run())
-
 
 
 def test_expired_confirmation_challenge_can_be_renewed_for_same_valid_intent() -> None:
@@ -97,8 +103,8 @@ def test_expired_confirmation_challenge_can_be_renewed_for_same_valid_intent() -
         old_token = first_challenge.value.details["challenge_token"]
 
         # Simulate TTL expiry without expiring or mutating the original intent.
-        manager._pending_confirmations[intent.intent_id].expires_at = (
-            datetime.now(timezone.utc) - timedelta(seconds=1)
+        manager._pending_confirmations[intent.intent_id].expires_at = datetime.now(UTC) - timedelta(
+            seconds=1
         )
         with pytest.raises(ConfirmationRequiredError) as renewed_challenge:
             await manager.execute_intent(intent, user_id="alice")
@@ -122,7 +128,7 @@ def test_medium_risk_requires_server_side_confirmation_even_if_client_flag_is_fa
         manager = DeviceManager()
         device_id = str(uuid4())
         manager.register_device(device_id, "alice")
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         intent = MobileIntent(
             device_id=device_id,
             intent_type=IntentType.SYSTEM_SETTING,
@@ -140,6 +146,7 @@ def test_medium_risk_requires_server_side_confirmation_even_if_client_flag_is_fa
         assert result["status"] == "success"
 
     asyncio.run(run())
+
 
 def test_sandbox_fails_closed_without_isolated_provider() -> None:
     async def run() -> None:

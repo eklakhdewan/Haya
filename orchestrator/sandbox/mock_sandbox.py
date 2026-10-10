@@ -1,8 +1,7 @@
 """Mock sandbox adapter for offline testing without cloud microVM dependencies."""
 
 import io
-import sys
-from contextlib import redirect_stdout, redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from uuid import uuid4
 
 from orchestrator.core.models import SandboxExecutionResult

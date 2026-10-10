@@ -5,7 +5,6 @@ from uuid import uuid4
 
 from orchestrator.agents.supervisor import Supervisor
 from orchestrator.gateway.events import RealtimeEventType, SessionState
-from orchestrator.gateway.session_manager import SessionRegistry
 from orchestrator.gateway.stt_adapter import MockSTTAdapter
 from orchestrator.gateway.tts_adapter import MockTTSAdapter
 from orchestrator.gateway.voice_gateway import VoiceGateway

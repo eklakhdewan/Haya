@@ -1,6 +1,7 @@
 """Critic Agent responsible for safety verification, policy compliance, and action validation."""
 
 from typing import Any
+
 from orchestrator.core.models import CriticCheckResult, IntentType, RiskLevel
 
 
@@ -62,7 +63,10 @@ class Critic:
         # 4. Device action specific checks
         if action_type == "device":
             intent_type = payload.get("intent_type")
-            if intent_type in [IntentType.SEND_SMS.value, IntentType.MAKE_CALL.value] and not confirmed:
+            if (
+                intent_type in [IntentType.SEND_SMS.value, IntentType.MAKE_CALL.value]
+                and not confirmed
+            ):
                 reasons.append(f"Device intent {intent_type} requires explicit user confirmation")
                 return CriticCheckResult(
                     approved=False,

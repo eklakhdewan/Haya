@@ -1,6 +1,6 @@
 """Typed domain models and schemas for the HINA orchestrator."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, Generic, Literal, TypeVar
 from uuid import uuid4
@@ -54,7 +54,9 @@ class SupervisorInput(BaseModel):
     session_id: str = Field(description="Unique conversation session identifier")
     user_id: str = Field(description="Unique authenticated user identifier")
     text: str = Field(description="User prompt or transcribed speech text")
-    trace_id: str = Field(default_factory=lambda: str(uuid4()), description="Distributed trace identifier")
+    trace_id: str = Field(
+        default_factory=lambda: str(uuid4()), description="Distributed trace identifier"
+    )
 
 
 class SupervisorOutput(BaseModel):
@@ -62,7 +64,9 @@ class SupervisorOutput(BaseModel):
 
     route: RouteType = Field(description="Selected target agent specialist")
     confidence: float = Field(ge=0.0, le=1.0, description="Routing confidence score")
-    requires_confirmation: bool = Field(default=False, description="Whether routing or action requires user confirmation")
+    requires_confirmation: bool = Field(
+        default=False, description="Whether routing or action requires user confirmation"
+    )
     rationale: str = Field(default="", description="Brief classifier reasoning")
 
 
@@ -74,7 +78,7 @@ class MemoryCandidate(BaseModel):
     object: str
     confidence: float = Field(ge=0.0, le=1.0)
     source_turn_id: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     operation: MemoryOperation = MemoryOperation.CREATE
 
 
@@ -87,8 +91,8 @@ class MemoryRecord(BaseModel):
     object: str
     confidence: float = Field(ge=0.0, le=1.0)
     source_turn_id: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     status: Literal["active", "deleted", "archived"] = "active"
 
 
@@ -134,7 +138,7 @@ class MobileIntent(BaseModel):
     device_id: str
     intent_type: IntentType
     payload: dict[str, Any]
-    issued_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    issued_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     expires_at: datetime
     nonce: str = Field(min_length=16)
     confirmation_required: bool = False

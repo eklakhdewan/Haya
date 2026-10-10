@@ -1,7 +1,7 @@
 """Tests for concurrent HybridRetriever and Reciprocal Rank Fusion (RRF)."""
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from orchestrator.core.models import MemoryRecord
@@ -16,7 +16,7 @@ def test_hybrid_retrieval_and_rrf_fusion() -> None:
         retriever = HybridRetriever(vector_store=v_store, graph_store=g_store)
 
         user_id = "user-hybrid-1"
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         mem_id = str(uuid4())
 
         record = MemoryRecord(

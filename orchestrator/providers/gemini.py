@@ -2,6 +2,7 @@
 
 import os
 from typing import Any, TypeVar
+
 from pydantic import BaseModel
 
 from orchestrator.core.errors import ProviderUnavailableError
@@ -31,6 +32,7 @@ class GeminiProvider(LLMProvider):
                 )
             try:
                 from google import genai
+
                 self._client = genai.Client(api_key=self.api_key)
             except ImportError:
                 raise ProviderUnavailableError(
@@ -49,7 +51,9 @@ class GeminiProvider(LLMProvider):
         response = client.models.generate_content(
             model=self.model,
             contents=prompt,
-            config={"temperature": temperature, "system_instruction": system_prompt} if system_prompt else {"temperature": temperature},
+            config={"temperature": temperature, "system_instruction": system_prompt}
+            if system_prompt
+            else {"temperature": temperature},
         )
         return response.text or ""
 

@@ -24,7 +24,9 @@ class VoiceSession:
         self.audio_output_queue: asyncio.Queue[bytes] = asyncio.Queue()
         self._active_tts_task: asyncio.Task[Any] | None = None
 
-    def emit_event(self, event_type: RealtimeEventType, payload: dict[str, Any] | None = None) -> RealtimeEvent:
+    def emit_event(
+        self, event_type: RealtimeEventType, payload: dict[str, Any] | None = None
+    ) -> RealtimeEvent:
         event = RealtimeEvent(
             session_id=self.session_id,
             event_type=event_type,

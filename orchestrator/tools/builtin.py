@@ -10,7 +10,6 @@ from orchestrator.core.errors import InvalidSchemaError
 from orchestrator.core.models import RiskLevel
 from orchestrator.tools.base import Tool
 
-
 NumericOperator = Callable[[float | int, float | int], float | int]
 UnaryOperator = Callable[[float | int], float | int]
 

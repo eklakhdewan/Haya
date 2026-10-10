@@ -44,7 +44,9 @@ def test_database_runtime_is_optional_outside_production(monkeypatch: pytest.Mon
     assert database.create_database_runtime() is None
 
 
-def test_database_runtime_fails_closed_in_production_without_url(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_database_runtime_fails_closed_in_production_without_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(
         database,
         "get_settings",
@@ -54,7 +56,9 @@ def test_database_runtime_fails_closed_in_production_without_url(monkeypatch: py
         database.create_database_runtime()
 
 
-def test_database_runtime_creates_async_engine_without_connecting(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_database_runtime_creates_async_engine_without_connecting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(
         database,
         "get_settings",

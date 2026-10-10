@@ -1,6 +1,6 @@
 """Unit tests for core models, serialization, and validation."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -8,13 +8,11 @@ from pydantic import ValidationError
 
 from orchestrator.core.models import (
     APIResponse,
-    CriticCheckResult,
     IntentType,
     MemoryCandidate,
     MemoryEntityType,
     MemoryOperation,
     MobileIntent,
-    RiskLevel,
     RouteType,
     SandboxExecuteRequest,
     SandboxExecutionResult,
@@ -63,7 +61,7 @@ def test_supervisor_output_confidence_bounds() -> None:
 
 
 def test_mobile_intent_schema() -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     intent = MobileIntent(
         device_id=str(uuid4()),
         intent_type=IntentType.OPEN_APP,

@@ -5,12 +5,14 @@ import inspect
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, Literal, cast
+from typing import Any, Literal
 from uuid import uuid4
+
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import inspect as sqlalchemy_inspect, text
+from sqlalchemy import inspect as sqlalchemy_inspect
+from sqlalchemy import text
 
 from orchestrator.agents.coder import CoderAgent
 from orchestrator.agents.device import DeviceAgent
@@ -19,13 +21,9 @@ from orchestrator.core.auth import decode_access_token
 from orchestrator.core.config import get_settings
 from orchestrator.core.database import create_database_runtime
 from orchestrator.core.errors import HinaError
-from orchestrator.dashboard import DASHBOARD_HTML
-from orchestrator.observability import trace_manager
 from orchestrator.core.models import (
     APIResponse,
     MemoryCandidate,
-    MemoryQueryItem,
-    MemoryQueryRequest,
     MemoryQueryResponse,
     MemoryRecord,
     MobileIntent,
@@ -34,18 +32,17 @@ from orchestrator.core.models import (
     SupervisorInput,
     SupervisorOutput,
 )
+from orchestrator.dashboard import DASHBOARD_HTML
 from orchestrator.devices.manager import ActionAuditRecord, DeviceInfo, DeviceManager
 from orchestrator.devices.persistent_manager import PersistentDeviceManager
 from orchestrator.devices.validator import MobileIntentValidator
-from orchestrator.gateway.events import RealtimeEventType
 from orchestrator.gateway.stt_adapter import MockSTTAdapter
 from orchestrator.gateway.tts_adapter import MockTTSAdapter
 from orchestrator.gateway.voice_gateway import VoiceGateway
 from orchestrator.memory.extractor import MemoryExtractor
 from orchestrator.memory.lifecycle import MemoryLifecycleManager
 from orchestrator.memory.mock_memory import InMemoryGraphStore, InMemoryVectorStore
-from orchestrator.memory.neo4j_adapter import Neo4jGraphAdapter
-from orchestrator.memory.qdrant_adapter import QdrantVectorAdapter
+from orchestrator.observability import trace_manager
 from orchestrator.providers.base import LLMProvider
 from orchestrator.providers.gemini import GeminiProvider
 from orchestrator.providers.mock_llm import MockLLMProvider
@@ -53,6 +50,7 @@ from orchestrator.sandbox.base import SandboxAdapter
 from orchestrator.sandbox.e2b_adapter import E2BSandboxAdapter
 from orchestrator.tools.builtin import CalculatorTool, TimeTool
 from orchestrator.tools.registry import ToolRegistry
+
 
 @asynccontextmanager
 async def app_lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -113,8 +111,11 @@ async def handle_domain_error(request: Request, exc: HinaError) -> JSONResponse:
     """Map domain authorization/policy errors to stable HTTP responses."""
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": {"code": exc.code.value, "message": exc.message, "details": exc.details}},
+        content={
+            "detail": {"code": exc.code.value, "message": exc.message, "details": exc.details}
+        },
     )
+
 
 # Application state dependencies
 settings = get_settings()
@@ -154,6 +155,7 @@ def _principal_user_id(request: Request) -> str:
 def _require_admin(request: Request) -> None:
     if request.state.principal.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Administrator role required.")
+
 
 # Initialize LLM provider based on settings/environment
 llm_provider: LLMProvider
@@ -200,6 +202,7 @@ async def _device_manager_call(method: Any, *args: Any, **kwargs: Any) -> Any:
     if inspect.isawaitable(result):
         return await result
     return result
+
 
 # Initialize Realtime Voice Gateway
 stt_adapter = MockSTTAdapter()
@@ -249,10 +252,16 @@ async def get_trace_by_id(trace_id: str, request: Request) -> APIResponse[dict[s
 
 # --- Realtime Voice WebSocket Endpoint ---
 @app.websocket("/v1/realtime/ws")
-async def realtime_ws(websocket: WebSocket, session_id: str | None = None, user_id: str | None = None) -> None:
+async def realtime_ws(
+    websocket: WebSocket, session_id: str | None = None, user_id: str | None = None
+) -> None:
     """Bidirectional voice socket authenticated with a short-lived bearer JWT."""
     scheme, _, header_token = websocket.headers.get("authorization", "").partition(" ")
-    token = header_token.strip() if scheme.lower() == "bearer" else websocket.query_params.get("access_token", "")
+    token = (
+        header_token.strip()
+        if scheme.lower() == "bearer"
+        else websocket.query_params.get("access_token", "")
+    )
     try:
         claims = decode_access_token(token)
     except HTTPException:
@@ -315,7 +324,9 @@ async def realtime_ws(websocket: WebSocket, session_id: str | None = None, user_
 async def route_intent(payload: SupervisorInput, request: Request) -> APIResponse[SupervisorOutput]:
     """Route a turn only for the authenticated token subject."""
     if payload.user_id != _principal_user_id(request):
-        raise HTTPException(status_code=403, detail="user_id must match the authenticated token subject.")
+        raise HTTPException(
+            status_code=403, detail="user_id must match the authenticated token subject."
+        )
     t0 = time.perf_counter()
     trace_manager.start_trace(payload.session_id, "supervisor_route", payload.trace_id)
     try:
@@ -420,7 +431,9 @@ class MemoryQueryApiRequest(BaseModel):
 
 
 @app.post("/v1/memory/query", response_model=APIResponse[MemoryQueryResponse])
-async def query_memory(req: MemoryQueryApiRequest, request: Request) -> APIResponse[MemoryQueryResponse]:
+async def query_memory(
+    req: MemoryQueryApiRequest, request: Request
+) -> APIResponse[MemoryQueryResponse]:
     """Perform memory retrieval only within the authenticated user's namespace."""
     user_id = _principal_user_id(request)
     if req.user_id is not None and req.user_id != user_id:
@@ -463,18 +476,24 @@ async def store_memory(req: MemoryStoreRequest, request: Request) -> APIResponse
     """Persist a memory candidate only in the authenticated user's namespace."""
     user_id = _principal_user_id(request)
     if req.user_id is not None and req.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Cannot store memory in another user's namespace.")
+        raise HTTPException(
+            status_code=403, detail="Cannot store memory in another user's namespace."
+        )
     rec = await memory_lifecycle.store_candidate(user_id=user_id, candidate=req.candidate)
     return APIResponse(data=rec)
 
 
 @app.delete("/v1/memory/{memory_id}", response_model=APIResponse[dict[str, Any]])
-async def delete_memory(memory_id: str, request: Request, user_id: str | None = None) -> APIResponse[dict[str, Any]]:
+async def delete_memory(
+    memory_id: str, request: Request, user_id: str | None = None
+) -> APIResponse[dict[str, Any]]:
     """Delete memory only from the authenticated user's namespace."""
     authenticated_user_id = _principal_user_id(request)
     if user_id is not None and user_id != authenticated_user_id:
         raise HTTPException(status_code=403, detail="Cannot delete another user's memory.")
-    deleted = await memory_lifecycle.delete_memory(user_id=authenticated_user_id, memory_id=memory_id)
+    deleted = await memory_lifecycle.delete_memory(
+        user_id=authenticated_user_id, memory_id=memory_id
+    )
     return APIResponse(data={"memory_id": memory_id, "deleted": deleted})
 
 
@@ -490,7 +509,9 @@ async def register_device(req: DeviceRegisterRequest, request: Request) -> APIRe
     """Enroll a mobile device for the authenticated owner only."""
     user_id = _principal_user_id(request)
     if req.user_id != user_id:
-        raise HTTPException(status_code=403, detail="user_id must match the authenticated token subject.")
+        raise HTTPException(
+            status_code=403, detail="user_id must match the authenticated token subject."
+        )
     info = await _device_manager_call(
         device_manager.register_device, device_id=req.device_id, user_id=user_id, name=req.name
     )
@@ -511,10 +532,14 @@ async def revoke_device(req: DeviceRevokeRequest, request: Request) -> APIRespon
 
 
 @app.post("/v1/device/actions", response_model=APIResponse[dict[str, Any]])
-async def submit_device_action(intent: MobileIntent, request: Request) -> APIResponse[dict[str, Any]]:
+async def submit_device_action(
+    intent: MobileIntent, request: Request
+) -> APIResponse[dict[str, Any]]:
     """Execute or request approval for an intent owned by the authenticated user."""
     try:
-        result = await device_manager.execute_intent(intent=intent, user_id=_principal_user_id(request))
+        result = await device_manager.execute_intent(
+            intent=intent, user_id=_principal_user_id(request)
+        )
         return APIResponse(data=result)
     except HinaError as e:
         raise HTTPException(
@@ -529,7 +554,9 @@ class DeviceConfirmRequest(BaseModel):
 
 
 @app.post("/v1/device/confirm", response_model=APIResponse[dict[str, bool]])
-async def confirm_device_action(req: DeviceConfirmRequest, request: Request) -> APIResponse[dict[str, bool]]:
+async def confirm_device_action(
+    req: DeviceConfirmRequest, request: Request
+) -> APIResponse[dict[str, bool]]:
     """Approve a pending action only as its authenticated owner."""
     confirmed = await _device_manager_call(
         device_manager.confirm_action,
@@ -538,18 +565,28 @@ async def confirm_device_action(req: DeviceConfirmRequest, request: Request) -> 
         user_id=_principal_user_id(request),
     )
     if not confirmed:
-        raise HTTPException(status_code=403, detail={"code": "POLICY_DENIED", "message": "Invalid, expired, or unauthorized confirmation token."})
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "POLICY_DENIED",
+                "message": "Invalid, expired, or unauthorized confirmation token.",
+            },
+        )
     return APIResponse(data={"confirmed": True})
 
 
 @app.get("/v1/device/audit", response_model=APIResponse[list[ActionAuditRecord]])
-async def get_device_audit(request: Request, device_id: str | None = None) -> APIResponse[list[ActionAuditRecord]]:
+async def get_device_audit(
+    request: Request, device_id: str | None = None
+) -> APIResponse[list[ActionAuditRecord]]:
     """Retrieve audit records for the authenticated user only."""
     user_id = _principal_user_id(request)
     if device_id is not None and not await _device_manager_call(
         device_manager.owns_device, device_id, user_id=user_id
     ):
-        raise HTTPException(status_code=403, detail="Cannot inspect another user's device audit trail.")
+        raise HTTPException(
+            status_code=403, detail="Cannot inspect another user's device audit trail."
+        )
     audit_trail = await _device_manager_call(
         device_manager.get_audit_trail, device_id=device_id, user_id=user_id
     )

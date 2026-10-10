@@ -1,15 +1,18 @@
 """Intent validation, JSON schema enforcement, and replay protection."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
 import jsonschema
 
 from orchestrator.core.errors import InvalidSchemaError, PolicyDeniedError
 from orchestrator.core.models import MobileIntent
 
-SCHEMA_PATH = Path(__file__).parent.parent.parent / "config" / "schemas" / "mobile_intent.schema.json"
+SCHEMA_PATH = (
+    Path(__file__).parent.parent.parent / "config" / "schemas" / "mobile_intent.schema.json"
+)
 
 
 class MobileIntentValidator:
@@ -25,7 +28,7 @@ class MobileIntentValidator:
         if self._schema is None:
             if not self.schema_file.exists():
                 raise FileNotFoundError(f"Schema file not found at {self.schema_file}")
-            with open(self.schema_file, "r", encoding="utf-8") as f:
+            with open(self.schema_file, encoding="utf-8") as f:
                 self._schema = json.load(f)
         return self._schema
 
@@ -43,7 +46,7 @@ class MobileIntentValidator:
 
     def validate_intent(self, intent: MobileIntent) -> None:
         """Comprehensive verification including schema, expiration, and replay protection."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # 1. Check expiration
         if intent.expires_at <= now:

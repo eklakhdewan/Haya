@@ -1,4 +1,5 @@
 """Device enrollment, ownership checks, approval binding, and action audit."""
+
 from __future__ import annotations
 
 import hashlib
@@ -6,7 +7,7 @@ import hmac
 import json
 import secrets
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
@@ -22,7 +23,7 @@ class DeviceInfo(BaseModel):
     device_id: str
     user_id: str
     name: str
-    registered_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    registered_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     is_revoked: bool = False
 
 
@@ -58,7 +59,9 @@ class DeviceManager:
         self._pending_confirmations: dict[str, PendingConfirmation] = {}
         self._audit_log: list[ActionAuditRecord] = []
 
-    def register_device(self, device_id: str, user_id: str, name: str = "Android Device") -> DeviceInfo:
+    def register_device(
+        self, device_id: str, user_id: str, name: str = "Android Device"
+    ) -> DeviceInfo:
         if not device_id.strip() or not user_id.strip():
             raise PolicyDeniedError("device_id and authenticated user_id are required.")
         existing = self._devices.get(device_id)
@@ -115,13 +118,13 @@ class DeviceManager:
             user_id=user_id,
             device_id=intent.device_id,
             intent_fingerprint=fingerprint,
-            expires_at=datetime.now(timezone.utc) + timedelta(seconds=max(1, ttl)),
+            expires_at=datetime.now(UTC) + timedelta(seconds=max(1, ttl)),
         )
         return token
 
     def confirm_action(self, intent_id: str, token: str, user_id: str | None = None) -> bool:
         pending = self._pending_confirmations.get(intent_id)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if not pending:
             return False
         if now >= pending.expires_at:
@@ -137,18 +140,27 @@ class DeviceManager:
         pending.confirmed = True
         return True
 
-    async def execute_intent(self, intent: MobileIntent, user_id: str = "default-user") -> dict[str, Any]:
-        now = datetime.now(timezone.utc)
+    async def execute_intent(
+        self, intent: MobileIntent, user_id: str = "default-user"
+    ) -> dict[str, Any]:
+        now = datetime.now(UTC)
         requested_at = now.isoformat()
         risk_level = self.get_risk_level(intent.intent_type)
         device = self._devices.get(intent.device_id)
 
         if not device or device.is_revoked or device.user_id != user_id:
-            self._audit_log.append(ActionAuditRecord(
-                user_id=user_id, device_id=intent.device_id, intent_type=intent.intent_type.value,
-                risk=risk_level.value, confirmation="denied", requested_at=requested_at,
-                result="rejected", details={"reason": "Device is not authorized for this user."},
-            ))
+            self._audit_log.append(
+                ActionAuditRecord(
+                    user_id=user_id,
+                    device_id=intent.device_id,
+                    intent_type=intent.intent_type.value,
+                    risk=risk_level.value,
+                    confirmation="denied",
+                    requested_at=requested_at,
+                    result="rejected",
+                    details={"reason": "Device is not authorized for this user."},
+                )
+            )
             raise PolicyDeniedError("Device is not authorized for this authenticated user.")
 
         fingerprint = self._fingerprint(intent)
@@ -167,10 +179,14 @@ class DeviceManager:
                 or pending.device_id != intent.device_id
                 or not hmac.compare_digest(pending.intent_fingerprint, fingerprint)
             ):
-                raise PolicyDeniedError("Expired challenge does not match this user, device, or intent.")
+                raise PolicyDeniedError(
+                    "Expired challenge does not match this user, device, or intent."
+                )
             if intent.expires_at <= now:
                 self._pending_confirmations.pop(intent.intent_id, None)
-                raise PolicyDeniedError("Action intent has expired; a new valid intent is required.")
+                raise PolicyDeniedError(
+                    "Action intent has expired; a new valid intent is required."
+                )
             self._pending_confirmations.pop(intent.intent_id, None)
             pending = None
             renewing_expired_challenge = True
@@ -202,12 +218,18 @@ class DeviceManager:
 
         if requires_confirmation and not resumed_approved_action:
             challenge_token = self._issue_confirmation(intent, user_id, fingerprint)
-            self._audit_log.append(ActionAuditRecord(
-                user_id=user_id, device_id=intent.device_id, intent_type=intent.intent_type.value,
-                risk=risk_level.value, confirmation="pending", requested_at=requested_at,
-                result="requires_confirmation",
-                details={"intent_fingerprint": fingerprint},
-            ))
+            self._audit_log.append(
+                ActionAuditRecord(
+                    user_id=user_id,
+                    device_id=intent.device_id,
+                    intent_type=intent.intent_type.value,
+                    risk=risk_level.value,
+                    confirmation="pending",
+                    requested_at=requested_at,
+                    result="requires_confirmation",
+                    details={"intent_fingerprint": fingerprint},
+                )
+            )
             raise ConfirmationRequiredError(
                 f"Action '{intent.intent_type.value}' is high-risk and requires confirmation.",
                 details={"challenge_token": challenge_token, "intent_id": intent.intent_id},
@@ -215,25 +237,34 @@ class DeviceManager:
 
         # Consume approval atomically from this in-memory manager before returning success.
         self._pending_confirmations.pop(intent.intent_id, None)
-        executed_at = datetime.now(timezone.utc).isoformat()
+        executed_at = datetime.now(UTC).isoformat()
         audit = ActionAuditRecord(
-            user_id=user_id, device_id=intent.device_id, intent_type=intent.intent_type.value,
-            risk=risk_level.value, confirmation="approved" if requires_confirmation else "not_required",
-            requested_at=requested_at, executed_at=executed_at, result="success",
+            user_id=user_id,
+            device_id=intent.device_id,
+            intent_type=intent.intent_type.value,
+            risk=risk_level.value,
+            confirmation="approved" if requires_confirmation else "not_required",
+            requested_at=requested_at,
+            executed_at=executed_at,
+            result="success",
             details={"intent_fingerprint": fingerprint},
         )
         self._audit_log.append(audit)
         self.validator.mark_completed(intent.intent_id)
         return {
-            "status": "success", "action_id": audit.action_id, "intent_id": intent.intent_id,
-            "executed_at": executed_at, "payload": intent.payload,
+            "status": "success",
+            "action_id": audit.action_id,
+            "intent_id": intent.intent_id,
+            "executed_at": executed_at,
+            "payload": intent.payload,
         }
 
     def get_audit_trail(
         self, device_id: str | None = None, user_id: str | None = None
     ) -> list[ActionAuditRecord]:
         return [
-            record for record in self._audit_log
+            record
+            for record in self._audit_log
             if (device_id is None or record.device_id == device_id)
             and (user_id is None or record.user_id == user_id)
         ]
