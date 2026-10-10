@@ -51,7 +51,11 @@ class E2BSandboxAdapter(SandboxAdapter):
             from e2b_code_interpreter import Sandbox  # type: ignore[import-not-found]
 
             timeout_s = max(1, math.ceil(timeout_ms / 1000))
-            with Sandbox(api_key=self.api_key, timeout=timeout_s) as sandbox:
+            with Sandbox.create(
+                api_key=self.api_key,
+                timeout=timeout_s,
+                allow_internet_access=False,
+            ) as sandbox:
                 execution = sandbox.run_code(code)
                 stdout_text = "\n".join(str(log) for log in execution.logs.stdout)
                 stderr_text = "\n".join(str(log) for log in execution.logs.stderr)
