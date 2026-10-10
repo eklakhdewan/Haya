@@ -55,7 +55,7 @@ class MockLLMProvider(LLMProvider):
         if response_schema == SupervisorOutput or issubclass(response_schema, SupervisorOutput):
             for pattern, route, conf, conf_req in self._pattern_routes:
                 if pattern.search(last_message):
-                    return response_schema(  # type: ignore[return-value]
+                    return response_schema(
                         route=route,
                         confidence=conf,
                         requires_confirmation=conf_req,
