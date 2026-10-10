@@ -42,6 +42,7 @@ def test_production_rejects_missing_or_non_postgres_database_url(database_url):
     [
         "postgresql://user:pass@localhost:5432/haya",
         "postgresql+asyncpg://user:pass@localhost:5432/haya",
+        "postgres://user:pass@localhost:5432/haya",
     ],
 )
 def test_production_accepts_postgres_url_scheme(database_url):
