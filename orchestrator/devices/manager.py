@@ -83,6 +83,11 @@ class DeviceManager:
                 self._pending_confirmations.pop(intent_id, None)
         return True
 
+    def owns_device(self, device_id: str, user_id: str) -> bool:
+        """Return ownership independent of revocation state, for audit access."""
+        device = self._devices.get(device_id)
+        return device is not None and device.user_id == user_id
+
     def is_device_authorized(self, device_id: str, user_id: str | None = None) -> bool:
         device = self._devices.get(device_id)
         if not device or device.is_revoked:
