@@ -1,5 +1,5 @@
 """E2B isolated microVM sandbox adapter; fails closed when isolation is unavailable."""
-import math
+import asyncio
 import os
 import time
 from uuid import uuid4
@@ -23,10 +23,9 @@ class E2BSandboxAdapter(SandboxAdapter):
         network: str = "disabled",
     ) -> SandboxExecutionResult:
         started = time.monotonic()
-        if not 500 <= timeout_ms <= 60_000:
-            raise PolicyDeniedError("Sandbox timeout must be between 500 and 60000 milliseconds.")
-        # Egress is denied until a real provider-level network policy is implemented.
-        # AST checks are defense-in-depth only, never a sandbox boundary.
+        if not 1_000 <= timeout_ms <= 60_000:
+            raise PolicyDeniedError("Sandbox timeout must be between 1000 and 60000 milliseconds.")
+        # Egress is denied at the provider boundary; AST checks are only defense-in-depth.
         if network != "disabled":
             raise PolicyDeniedError("Network-enabled sandbox execution is disabled by security policy.")
 
@@ -48,28 +47,7 @@ class E2BSandboxAdapter(SandboxAdapter):
             )
 
         try:
-            from e2b_code_interpreter import Sandbox  # type: ignore[import-not-found]
-
-            timeout_s = max(1, math.ceil(timeout_ms / 1000))
-            with Sandbox.create(
-                api_key=self.api_key,
-                timeout=timeout_s,
-                allow_internet_access=False,
-            ) as sandbox:
-                execution = sandbox.run_code(code)
-                stdout_text = "\n".join(str(log) for log in execution.logs.stdout)
-                stderr_text = "\n".join(str(log) for log in execution.logs.stderr)
-                if execution.error:
-                    stderr_text += f"\n{execution.error.name}: {execution.error.value}"
-
-                return SandboxExecutionResult(
-                    execution_id=str(uuid4()),
-                    status="error" if execution.error else "success",
-                    stdout=stdout_text,
-                    stderr=stderr_text,
-                    exit_code=1 if execution.error else 0,
-                    execution_time_ms=max(0, int((time.monotonic() - started) * 1000)),
-                )
+            return await asyncio.to_thread(self._execute_isolated, code, timeout_ms, started)
         except ImportError as exc:
             raise ProviderUnavailableError(
                 "Isolated execution is unavailable: install e2b-code-interpreter."
@@ -83,5 +61,32 @@ class E2BSandboxAdapter(SandboxAdapter):
                 stdout="",
                 stderr="Sandbox execution timed out." if is_timeout else f"Sandbox provider failed ({error_type}).",
                 exit_code=124 if is_timeout else 1,
+                execution_time_ms=max(0, int((time.monotonic() - started) * 1000)),
+            )
+
+    def _execute_isolated(
+        self, code: str, timeout_ms: int, started: float
+    ) -> SandboxExecutionResult:
+        from e2b_code_interpreter import Sandbox  # type: ignore[import-not-found]
+
+        timeout_s = max(1, timeout_ms // 1000)
+        # Sandbox TTL includes startup overhead; run_code enforces the execution timeout.
+        with Sandbox.create(
+            api_key=self.api_key,
+            timeout=max(30, timeout_s + 15),
+            allow_internet_access=False,
+        ) as sandbox:
+            execution = sandbox.run_code(code, timeout=timeout_s)
+            stdout_text = "\n".join(str(log) for log in execution.logs.stdout)
+            stderr_text = "\n".join(str(log) for log in execution.logs.stderr)
+            if execution.error:
+                stderr_text += f"\n{execution.error.name}: {execution.error.value}"
+
+            return SandboxExecutionResult(
+                execution_id=str(uuid4()),
+                status="error" if execution.error else "success",
+                stdout=stdout_text,
+                stderr=stderr_text,
+                exit_code=1 if execution.error else 0,
                 execution_time_ms=max(0, int((time.monotonic() - started) * 1000)),
             )
