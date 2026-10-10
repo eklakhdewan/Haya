@@ -156,13 +156,28 @@ class DeviceManager:
         requires_confirmation = risk_level in (RiskLevel.MEDIUM, RiskLevel.HIGH)
         pending = self._pending_confirmations.get(intent.intent_id)
         resumed_approved_action = False
+        renewing_expired_challenge = False
+
+        # An expired approval challenge may be renewed only for the exact same previously
+        # validated intent, same owner/device, and while the intent itself remains valid.
+        # Its nonce was already consumed at initial validation, so do not validate it twice.
+        if pending and now >= pending.expires_at:
+            if (
+                pending.user_id != user_id
+                or pending.device_id != intent.device_id
+                or not hmac.compare_digest(pending.intent_fingerprint, fingerprint)
+            ):
+                raise PolicyDeniedError("Expired challenge does not match this user, device, or intent.")
+            if intent.expires_at <= now:
+                self._pending_confirmations.pop(intent.intent_id, None)
+                raise PolicyDeniedError("Action intent has expired; a new valid intent is required.")
+            self._pending_confirmations.pop(intent.intent_id, None)
+            pending = None
+            renewing_expired_challenge = True
 
         # An approval may resume only the exact previously validated intent, for the same
         # user and device, before both the intent and approval expire.
         if pending:
-            if now >= pending.expires_at:
-                self._pending_confirmations.pop(intent.intent_id, None)
-                raise PolicyDeniedError("Action confirmation has expired; submit the action again.")
             if (
                 pending.user_id != user_id
                 or pending.device_id != intent.device_id
@@ -179,7 +194,11 @@ class DeviceManager:
                 raise PolicyDeniedError("Approved intent has expired.")
             resumed_approved_action = True
         else:
-            self.validator.validate_intent(intent)
+            # Initial requests must pass expiry, completion/replay, nonce, and schema checks.
+            # A renewal skips re-validation only because its exact fingerprint was validated
+            # before the original challenge and was checked above against the stored record.
+            if not renewing_expired_challenge:
+                self.validator.validate_intent(intent)
 
         if requires_confirmation and not resumed_approved_action:
             challenge_token = self._issue_confirmation(intent, user_id, fingerprint)

@@ -85,6 +85,38 @@ def test_confirmation_is_bound_to_exact_intent_and_user() -> None:
 
 
 
+def test_expired_confirmation_challenge_can_be_renewed_for_same_valid_intent() -> None:
+    async def run() -> None:
+        manager = DeviceManager()
+        device_id = str(uuid4())
+        manager.register_device(device_id, "alice")
+        intent = make_intent(device_id, IntentType.SYSTEM_SETTING)
+
+        with pytest.raises(ConfirmationRequiredError) as first_challenge:
+            await manager.execute_intent(intent, user_id="alice")
+        old_token = first_challenge.value.details["challenge_token"]
+
+        # Simulate TTL expiry without expiring or mutating the original intent.
+        manager._pending_confirmations[intent.intent_id].expires_at = (
+            datetime.now(timezone.utc) - timedelta(seconds=1)
+        )
+        with pytest.raises(ConfirmationRequiredError) as renewed_challenge:
+            await manager.execute_intent(intent, user_id="alice")
+        new_token = renewed_challenge.value.details["challenge_token"]
+
+        assert new_token != old_token
+        assert manager.confirm_action(intent.intent_id, old_token, user_id="alice") is False
+        assert manager.confirm_action(intent.intent_id, new_token, user_id="bob") is False
+        assert manager.confirm_action(intent.intent_id, new_token, user_id="alice") is True
+
+        result = await manager.execute_intent(intent, user_id="alice")
+        assert result["status"] == "success"
+        with pytest.raises(PolicyDeniedError, match="Replay attack"):
+            await manager.execute_intent(intent, user_id="alice")
+
+    asyncio.run(run())
+
+
 def test_medium_risk_requires_server_side_confirmation_even_if_client_flag_is_false() -> None:
     async def run() -> None:
         manager = DeviceManager()
