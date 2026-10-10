@@ -78,14 +78,13 @@ def test_sec_04_device_action_unallowlisted_intent_type() -> None:
 
 
 def test_sec_05_sms_target_changed_after_approval() -> None:
-    """Critical Test 5: Changing intent parameters (like SMS target) after challenge approval fails."""
+    """A confirmed intent cannot be changed before the approved action is resumed."""
     async def _run() -> None:
         manager = DeviceManager()
         device_id = str(uuid4())
-        manager.register_device(device_id, "user-sec-5")
+        user_id = "user-sec-5"
+        manager.register_device(device_id, user_id)
         now = datetime.now(timezone.utc)
-
-        # 1. Original intent
         original_intent = MobileIntent(
             device_id=device_id,
             intent_type=IntentType.SEND_SMS,
@@ -95,27 +94,18 @@ def test_sec_05_sms_target_changed_after_approval() -> None:
             nonce="nonce_sec5_orig_12345678",
             confirmation_required=True,
         )
+        with pytest.raises(Exception) as challenge:
+            await manager.execute_intent(original_intent, user_id=user_id)
+        challenge_token = challenge.value.details["challenge_token"]
+        assert manager.confirm_action(original_intent.intent_id, challenge_token, user_id=user_id)
 
-        challenge_token = manager.issue_confirmation_token(original_intent.intent_id)
-
-        # 2. Attacker modifies payload/intent target to an unknown number and attempts to submit with challenge token
-        hijacked_intent = MobileIntent(
-            device_id=device_id,
-            intent_type=IntentType.SEND_SMS,
-            payload={"target": "+19996660000", "body": "Send Bitcoin"},
-            issued_at=now,
-            expires_at=now + timedelta(seconds=60),
-            nonce="nonce_sec5_hijack_1234567",
-            confirmation_required=True,
-            confirmation_token=challenge_token,
+        hijacked_intent = original_intent.model_copy(
+            update={"payload": {"target": "+19996660000", "body": "Send Bitcoin"}}
         )
-
-        # Hijacked intent has different intent_id, so the challenge token is invalid for it!
-        with pytest.raises(Exception):
-            await manager.execute_intent(hijacked_intent)
+        with pytest.raises(PolicyDeniedError, match="does not match"):
+            await manager.execute_intent(hijacked_intent, user_id=user_id)
 
     asyncio.run(_run())
-
 
 def test_sec_06_expired_device_token_or_intent_replayed() -> None:
     """Critical Test 6: Expired device intent replay is strictly denied."""
