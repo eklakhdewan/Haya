@@ -34,6 +34,7 @@ jobs:
     env:
       DATABASE_URL: postgresql+asyncpg://hina:hina_test_password@localhost:5432/hina_test
       ENVIRONMENT: testing
+      JWT_SECRET: test-only-secret-for-hina-security-ci-only
     steps:
       - name: Checkout
         uses: actions/checkout@v4
