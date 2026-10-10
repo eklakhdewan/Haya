@@ -22,6 +22,30 @@ def make_settings(**overrides: Any) -> Settings:
     return Settings.model_validate(values)
 
 
+@pytest.mark.parametrize(
+    "jwt_secret",
+    [
+        "",
+        " " * 32,
+        "replace-with-a-long-random-secret",
+        "insecure-dev-secret-replace-in-production",
+        "short-secret",
+    ],
+)
+def test_rejects_missing_weak_or_placeholder_jwt_secret(jwt_secret: str) -> None:
+    with pytest.raises(ValidationError):
+        make_settings(jwt_secret=jwt_secret)
+
+
+def test_production_rejects_empty_neo4j_password() -> None:
+    with pytest.raises(ValidationError, match="NEO4J_PASSWORD"):
+        make_settings(
+            environment="production",
+            neo4j_password="",
+            database_url="postgresql+asyncpg://user:pass@localhost:5432/haya",
+        )
+
+
 def test_development_allows_missing_database_url() -> None:
     settings = make_settings()
     assert settings.database_url == ""
