@@ -4,14 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import (
-    Boolean,
-    DateTime,
-    Index,
-    JSON,
-    String,
-    Text,
-)
+from sqlalchemy import Boolean, DateTime, Index, JSON, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
