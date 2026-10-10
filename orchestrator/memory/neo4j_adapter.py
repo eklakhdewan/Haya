@@ -17,12 +17,12 @@ class Neo4jGraphAdapter(GraphStoreAdapter):
         self.uri = uri
         self.username = username
         self.password = password
-        self._driver = None
+        self._driver: Any | None = None
 
     def _get_driver(self) -> Any:
         if self._driver is None:
             try:
-                from neo4j import AsyncGraphDatabase  # type: ignore[import-not-found]
+                from neo4j import AsyncGraphDatabase
                 self._driver = AsyncGraphDatabase.driver(self.uri, auth=(self.username, self.password))
             except Exception as e:
                 # Driver creation can fail if invalid connection
