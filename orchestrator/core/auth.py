@@ -43,7 +43,7 @@ def decode_access_token(token: str) -> dict[str, Any]:
             detail={"code": "AUTH_REQUIRED", "message": "Token subject is invalid."},
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return cast(dict[str, Any], claims)
+    return claims
 
 
 async def require_principal(
