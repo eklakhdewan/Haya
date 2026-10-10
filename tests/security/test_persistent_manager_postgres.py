@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
+import pytest_asyncio
 
 from orchestrator.core.database import create_database_runtime
 from orchestrator.core.errors import ConfirmationRequiredError, PolicyDeniedError
@@ -31,7 +32,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def persistent_manager():
     runtime = create_database_runtime(DATABASE_URL)
     assert runtime is not None
