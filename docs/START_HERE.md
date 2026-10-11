@@ -78,4 +78,5 @@ Do not start by expanding voice/device scope while these P0 safety and persisten
 - [v1 release checklist](V1_RELEASE_EXECUTION_CHECKLIST.md)
 - [Phase 1 security execution report](PHASE1_SECURITY_EXECUTION_REPORT.md)
 - [Security protocol](../SECURITY.md)
+- [HTTP and WebSocket authorization matrix](security/ROUTE_AUTHORIZATION_MATRIX.md)
 - [Persistent security storage notes](security/persistent-storage.md)
