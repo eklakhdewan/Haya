@@ -2,7 +2,7 @@
 
 **Last reviewed:** 2026-10-11  
 **Release status:** NOT RELEASE-READY  
-**Latest audited main SHA:** `a3fc5bd01bd4541cbeb07f6c58081760cc53773e`  
+**Latest audited main SHA:** `93730b2c5f327c96d63d25fd20f9025b11feb600`  
 **Latest audit:** [Post-merge audit and remediation plan](POST_MERGE_AUDIT_AND_REMEDIATION_PLAN.md)
 
 This is the source of truth for remaining v1 work. Mark an item complete only when evidence exists (CI run, test report, provider validation, deployment record or recovery drill). Source changes alone are not evidence of operational readiness.
@@ -19,31 +19,33 @@ This is the source of truth for remaining v1 work. Mark an item complete only wh
 
 ### P0.1 Sandbox safety
 
-- [ ] Enforce mock sandbox selection as test-only; fail startup or reject requests if a non-test environment selects it.
-- [ ] Test missing E2B credentials, missing SDK, provider outage, timeout, cancellation and malformed provider results.
-- [ ] Prove that no production failure path falls back to in-process/mock execution.
+- [x] Enforce mock sandbox selection as test-only; reject mock in development/staging/production.
+- [x] Test missing E2B credentials, missing SDK, provider outage, timeout and malformed provider results.
+- [x] Test that missing credentials/provider errors do not fall back to local/mock execution.
 - [ ] Run a provider-backed isolated execution test and verify network egress remains disabled at the provider boundary.
-- [ ] Verify execution timeout, output limits, cleanup and resource bounds.
+- [x] Enforce timeout policy and bound returned stdout/stderr.
+- [ ] Verify provider-side cleanup and resource bounds in a controlled environment.
 
 ### P0.2 Durable hybrid memory
 
-- [ ] Add a real embedding interface/provider; remove constant placeholder vectors from production paths.
-- [ ] Wire Qdrant and Neo4j adapters into application startup/shutdown using validated configuration.
-- [ ] Verify collection/index setup, credentials, connection health and failure behavior.
+- [x] Add real sentence-transformer embeddings for both document writes and query vectors; remove constant placeholder vectors.
+- [x] Wire Qdrant and Neo4j adapters into staging/production startup and shutdown.
+- [x] Add Qdrant collection dimension validation and Neo4j connectivity/constraint initialization.
+- [ ] Confirm service-backed Qdrant/Neo4j integration tests pass on this PR SHA.
 - [ ] Test persistence across API restarts and worker processes.
-- [ ] Test cross-user query and delete isolation against real adapters.
+- [ ] Test cross-user query and delete isolation against real adapters (service-backed tests added; CI evidence pending).
 - [ ] Test adapter failure, partial write, retry and reconciliation behavior.
-- [ ] Fail closed or explicitly disable the durable-memory feature if production configuration is incomplete.
+- [x] Fail startup when staging/production provider credentials or required memory configuration is incomplete.
 
 ### P0.3 Authentication and authorization
 
-- [ ] Inventory every HTTP route and WebSocket path; record required role and ownership policy.
-- [ ] Test unauthenticated, regular-user, cross-user and admin access for all sensitive routes.
-- [ ] Verify JWT issuer, audience, expiry, issued-at, subject and role handling.
+- [x] Inventory HTTP routes and WebSocket path with role/ownership policy in [route authorization matrix](security/ROUTE_AUTHORIZATION_MATRIX.md).
+- [ ] Complete positive/negative tests for every sensitive route across anonymous, regular-user, cross-user and admin cases (representative regression tests added; full matrix evidence pending).
+- [x] Add JWT regression tests for issuer, audience, expiry, issued-at, subject and role-gated admin access.
 - [ ] Verify trusted production token issuance and signing-secret rotation.
-- [ ] Verify WebSocket authentication, reconnect and query-token log redaction if query tokens are supported.
-- [ ] Verify TLS, CORS and deployment proxy settings.
-- [ ] Verify production startup fails closed when required secrets or persistent security storage are missing.
+- [ ] Verify WebSocket reconnect behavior and query-token log redaction while legacy query-token support remains enabled.
+- [ ] Verify TLS, CORS and deployment proxy settings in staging.
+- [ ] Verify production startup fails closed when required secrets, providers or persistent security storage are missing (configuration/startup guards added; deployment evidence pending).
 
 ### P0.4 Persistence and migration readiness
 

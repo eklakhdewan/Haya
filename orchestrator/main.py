@@ -18,7 +18,7 @@ from orchestrator.agents.coder import CoderAgent
 from orchestrator.agents.device import DeviceAgent
 from orchestrator.agents.supervisor import Supervisor
 from orchestrator.core.auth import decode_access_token
-from orchestrator.core.config import get_settings
+from orchestrator.core.config import Environment, get_settings
 from orchestrator.core.database import create_database_runtime
 from orchestrator.core.errors import HinaError
 from orchestrator.core.models import (
@@ -42,6 +42,8 @@ from orchestrator.gateway.voice_gateway import VoiceGateway
 from orchestrator.memory.extractor import MemoryExtractor
 from orchestrator.memory.lifecycle import MemoryLifecycleManager
 from orchestrator.memory.mock_memory import InMemoryGraphStore, InMemoryVectorStore
+from orchestrator.memory.neo4j_adapter import Neo4jGraphAdapter
+from orchestrator.memory.qdrant_adapter import QdrantVectorAdapter
 from orchestrator.observability import trace_manager
 from orchestrator.providers.base import LLMProvider
 from orchestrator.providers.gemini import GeminiProvider
@@ -91,9 +93,18 @@ async def app_lifespan(app: FastAPI) -> AsyncIterator[None]:
         except Exception:
             await runtime.dispose()
             raise
+    durable_memory = settings.environment in {Environment.STAGING, Environment.PRODUCTION}
     try:
+        if durable_memory:
+            await vector_store.initialize()
+            await graph_store.initialize()
         yield
     finally:
+        if durable_memory:
+            try:
+                await vector_store.close()
+            finally:
+                await graph_store.close()
         if runtime is not None:
             device_manager = original_device_manager
             await runtime.dispose()
@@ -185,8 +196,22 @@ coder_agent = CoderAgent(
 )
 
 # Initialize Memory subsystem
-vector_store = InMemoryVectorStore()
-graph_store = InMemoryGraphStore()
+vector_store: Any
+graph_store: Any
+if settings.environment in {Environment.STAGING, Environment.PRODUCTION}:
+    vector_store = QdrantVectorAdapter(
+        url=settings.qdrant_url,
+        api_key=settings.qdrant_api_key,
+        embedding_model=settings.embedding_model,
+    )
+    graph_store = Neo4jGraphAdapter(
+        uri=settings.neo4j_uri,
+        username=settings.neo4j_username,
+        password=settings.neo4j_password,
+    )
+else:
+    vector_store = InMemoryVectorStore()
+    graph_store = InMemoryGraphStore()
 memory_lifecycle = MemoryLifecycleManager(vector_store=vector_store, graph_store=graph_store)
 memory_extractor = MemoryExtractor(llm_provider=llm_provider)
 

@@ -50,7 +50,16 @@ class E2BSandboxAdapter(SandboxAdapter):
             )
 
         try:
-            return await asyncio.to_thread(self._execute_isolated, code, timeout_ms, started)
+            result = await asyncio.to_thread(self._execute_isolated, code, timeout_ms, started)
+            if not isinstance(result, SandboxExecutionResult):
+                raise ProviderUnavailableError(
+                    "Isolated execution provider returned an invalid result."
+                )
+            result.stdout = result.stdout[:100_000]
+            result.stderr = result.stderr[:20_000]
+            return result
+        except ProviderUnavailableError:
+            raise
         except ImportError as exc:
             raise ProviderUnavailableError(
                 "Isolated execution is unavailable: install e2b-code-interpreter."
