@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="redis://localhost:6379/0", description="Redis connection URL")
 
     # Code Execution Sandbox
+    sandbox_provider: Literal["e2b", "mock"] = "e2b"
     e2b_api_key: str = Field(default="", description="E2B API key for microVM sandboxes")
     sandbox_network: Literal["enabled", "disabled"] = "disabled"
     sandbox_timeout_ms: int = 5000
@@ -80,6 +81,9 @@ class Settings(BaseSettings):
             raise ValueError("Replace the JWT_SECRET placeholder with a unique random secret.")
         if len(self.jwt_secret) < 32:
             raise ValueError("JWT_SECRET must be at least 32 characters long.")
+
+        if self.sandbox_provider == "mock" and self.environment != Environment.TESTING:
+            raise ValueError("SANDBOX_PROVIDER=mock is permitted only when ENVIRONMENT=testing.")
 
         if self.environment == Environment.PRODUCTION and not self.neo4j_password.strip():
             raise ValueError("Production requires a non-empty NEO4J_PASSWORD.")
