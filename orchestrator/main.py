@@ -196,6 +196,8 @@ coder_agent = CoderAgent(
 )
 
 # Initialize Memory subsystem
+vector_store: Any
+ graph_store: Any
 if settings.environment in {Environment.STAGING, Environment.PRODUCTION}:
     vector_store = QdrantVectorAdapter(
         url=settings.qdrant_url,
