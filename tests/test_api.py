@@ -49,6 +49,7 @@ def test_api_tools_endpoints() -> None:
     assert bad_req.status_code == 422
     assert bad_req.json()["detail"]["code"] == "INVALID_SCHEMA"
 
+
 def test_regular_user_cannot_execute_tools() -> None:
     user_client = TestClient(app, headers=auth_headers("regular-user", "user"))
     response = user_client.post(
@@ -56,4 +57,3 @@ def test_regular_user_cannot_execute_tools() -> None:
         json={"tool_name": "calculator", "payload": {"expression": "1 + 1"}},
     )
     assert response.status_code == 403
-

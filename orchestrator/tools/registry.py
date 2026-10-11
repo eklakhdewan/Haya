@@ -45,14 +45,8 @@ class ToolRegistry:
         try:
             validate(instance=payload, schema=tool.input_schema)
         except (ValidationError, SchemaError) as exc:
-            reason = (
-                exc.message
-                if isinstance(exc, ValidationError)
-                else "invalid tool schema"
-            )
-            raise InvalidSchemaError(
-                f"Invalid payload for tool '{tool_name}': {reason}"
-            ) from exc
+            reason = exc.message if isinstance(exc, ValidationError) else "invalid tool schema"
+            raise InvalidSchemaError(f"Invalid payload for tool '{tool_name}': {reason}") from exc
         result = await tool.execute(payload)
         if not isinstance(result, dict):
             raise InvalidSchemaError(f"Tool '{tool_name}' returned an invalid result type.")

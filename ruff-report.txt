@@ -1,0 +1,230 @@
+E501 Line too long (124 > 100)
+  --> orchestrator\agents\coder.py:16:101
+   |
+14 | 1. Output ONLY runnable, clean Python code. Do not wrap in conversational chit-chat.
+15 | 2. If code blocks are needed, format inside standard ```python ... ``` fences.
+16 | 3. NEVER write code attempting to access host credentials, files outside the sandbox, or\n   unauthorized network resources.
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+17 | """
+   |
+
+E501 Line too long (106 > 100)
+  --> orchestrator\agents\supervisor.py:10:101
+   |
+ 8 | from orchestrator.providers.base import LLMMessage, LLMProvider
+ 9 |
+10 | SUPERVISOR_SYSTEM_PROMPT = """You are the Supervisor Agent for HINA, an autonomous real-time AI companion.
+   |                                                                                                     ^^^^^^
+11 | Your role is to classify user input into exactly one specialist route:
+12 | 1. conversation: General open-domain chat, questions, greetings, explanations.
+   |
+
+E501 Line too long (124 > 100)
+  --> orchestrator\agents\supervisor.py:13:101
+   |
+11 | Your role is to classify user input into exactly one specialist route:
+12 | 1. conversation: General open-domain chat, questions, greetings, explanations.
+13 | 2. memory: User requests to remember, update, forget, or recall personal preferences, facts,\n   relationships, or projects.
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+14 | 3. tool: Requests requiring deterministic utility tools like calculator, time check, unit\n   conversions, or search.
+15 | 4. coder: Requests to write, run, debug, or execute programming code or scripts.
+   |
+
+E501 Line too long (117 > 100)
+  --> orchestrator\agents\supervisor.py:14:101
+   |
+12 | 1. conversation: General open-domain chat, questions, greetings, explanations.
+13 | 2. memory: User requests to remember, update, forget, or recall personal preferences, facts,\n   relationships, or projects.
+14 | 3. tool: Requests requiring deterministic utility tools like calculator, time check, unit\n   conversions, or search.
+   |                                                                                                     ^^^^^^^^^^^^^^^^^
+15 | 4. coder: Requests to write, run, debug, or execute programming code or scripts.
+16 | 5. device: Requests to interact with an Android phone (send SMS, make call, open app,\n   toggle system settings).
+   |
+
+E501 Line too long (114 > 100)
+  --> orchestrator\agents\supervisor.py:16:101
+   |
+14 | 3. tool: Requests requiring deterministic utility tools like calculator, time check, unit\n   conversions, or search.
+15 | 4. coder: Requests to write, run, debug, or execute programming code or scripts.
+16 | 5. device: Requests to interact with an Android phone (send SMS, make call, open app,\n   toggle system settings).
+   |                                                                                                     ^^^^^^^^^^^^^^
+17 |
+18 | Safety & Confirmation Policy:
+   |
+
+E501 Line too long (136 > 100)
+  --> orchestrator\agents\supervisor.py:19:101
+   |
+18 | …
+19 | …e calls, changing critical settings) MUST\n  have requires_confirmation set to true.
+   |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+20 | …quire confirmation.
+21 | …put the classification route, confidence,\n  and confirmation requirement.
+   |
+
+E501 Line too long (126 > 100)
+  --> orchestrator\agents\supervisor.py:21:101
+   |
+19 | - High-risk device actions (sending SMS, making phone calls, changing critical settings) MUST\n  have requires_confirmation set to tru…
+20 | - Code execution tasks with external side effects require confirmation.
+21 | - You must NOT execute the action yourself. Only output the classification route, confidence,\n  and confirmation requirement.
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+22 | """
+   |
+
+B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+  --> orchestrator\devices\validator.py:41:13
+   |
+39 |             jsonschema.validate(instance=intent_dict, schema=schema)
+40 |         except jsonschema.ValidationError as e:
+41 |             raise InvalidSchemaError(f"Mobile intent failed schema validation: {e.message}")
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+42 |
+43 |     def mark_completed(self, intent_id: str) -> None:
+   |
+
+E501 Line too long (110 > 100)
+  --> orchestrator\devices\validator.py:54:101
+   |
+52 |         if intent.expires_at <= now:
+53 |             raise PolicyDeniedError(
+54 |                 f"Mobile intent '{intent.intent_id}' has expired (expires_at={intent.expires_at}, now={now})."
+   |                                                                                                     ^^^^^^^^^^
+55 |             )
+   |
+
+E501 Line too long (101 > 100)
+  --> orchestrator\gateway\tts_adapter.py:23:101
+   |
+22 | class MockTTSAdapter(TTSAdapter):
+23 |     """Deterministic Mock TTS producing simulated audio chunks that respect barge-in cancellation."""
+   |                                                                                                     ^
+24 |
+25 |     def __init__(self, chunk_count: int = 5, delay_per_chunk_s: float = 0.01) -> None:
+   |
+
+B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+  --> orchestrator\memory\neo4j_adapter.py:33:17
+   |
+31 |             except Exception as e:
+32 |                 # Driver creation can fail if invalid connection
+33 |                 raise ConnectionError(f"Could not initialize Neo4j driver: {e}")
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+34 |         return self._driver
+   |
+
+E501 Line too long (128 > 100)
+  --> orchestrator\memory\neo4j_adapter.py:96:101
+   |
+94 |         MATCH (u:User {id: $user_id})-[:HAS_MEMORY]->(m:Memory {status: 'active'})
+95 |         WHERE m.subject CONTAINS $term OR m.object CONTAINS $term OR m.predicate CONTAINS $term
+96 |         RETURN m.id AS memory_id, m.subject AS subject, m.predicate AS predicate, m.object AS object, m.confidence AS confidence
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+97 |         LIMIT $limit
+98 |         """
+   |
+
+E501 Line too long (104 > 100)
+  --> orchestrator\memory\qdrant_adapter.py:10:101
+   |
+ 9 | class QdrantVectorAdapter(VectorStoreAdapter):
+10 |     """Qdrant vector adapter supporting collection creation, metadata payload, and vector similarity."""
+   |                                                                                                     ^^^^
+11 |
+12 |     def __init__(
+   |
+
+E501 Line too long (102 > 100)
+  --> orchestrator\memory\qdrant_adapter.py:38:101
+   |
+37 |         # In production, embeddings are calculated via sentence-transformers or Gemini
+38 |         # Here we mock a 384-dimension pseudo-vector for collection storage if embeddings are computed
+   |                                                                                                     ^^
+39 |         vector = [0.1] * 384
+   |
+
+E501 Line too long (145 > 100)
+  --> orchestrator\providers\mock_llm.py:23:101
+   |
+21 | …
+22 | …
+23 | …ll|what did I say about|preference|prefer|favorite|my dog|project milestones|dietary)\b",
+   |                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+24 | …
+25 | …
+   |
+
+E501 Line too long (108 > 100)
+  --> orchestrator\providers\mock_llm.py:33:101
+   |
+31 |             (
+32 |                 re.compile(
+33 |                     r"\b(write a python script|code|function|debug|execute code|run this program|python)\b",
+   |                                                                                                     ^^^^^^^^
+34 |                     re.I,
+35 |                 ),
+   |
+
+E501 Line too long (107 > 100)
+  --> orchestrator\providers\mock_llm.py:43:101
+   |
+41 |             (
+42 |                 re.compile(
+43 |                     r"\b(send sms|text message|make a call|call|open app|wifi|bluetooth|setting|device)\b",
+   |                                                                                                     ^^^^^^^
+44 |                     re.I,
+45 |                 ),
+   |
+
+E501 Line too long (101 > 100)
+  --> orchestrator\providers\mock_llm.py:53:101
+   |
+51 |             (
+52 |                 re.compile(
+53 |                     r"\b(calculate|current time|what time|check.*time|search web|weather|convert)\b",
+   |                                                                                                     ^
+54 |                     re.I,
+55 |                 ),
+   |
+
+B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+   --> orchestrator\providers\mock_llm.py:102:13
+    |
+100 |               return response_schema.model_validate({})
+101 |           except Exception:
+102 | /             raise NotImplementedError(
+103 | |                 f"MockLLMProvider requires pre-registered handler for schema: {response_schema.__name__}"
+104 | |             )
+    | |_____________^
+
+E501 Line too long (105 > 100)
+   --> orchestrator\providers\mock_llm.py:103:101
+    |
+101 |         except Exception:
+102 |             raise NotImplementedError(
+103 |                 f"MockLLMProvider requires pre-registered handler for schema: {response_schema.__name__}"
+    |                                                                                                     ^^^^^
+104 |             )
+    |
+
+E501 Line too long (106 > 100)
+  --> tests\test_coder_agent.py:19:101
+   |
+17 |         llm.register_text_response(
+18 |             "fibonacci",
+19 |             "```python\ndef fib(n):\n    return n if n <= 1 else fib(n-1) + fib(n-2)\nprint(fib(5))\n```",
+   |                                                                                                     ^^^^^^
+20 |         )
+   |
+
+E501 Line too long (104 > 100)
+  --> tests\test_hybrid_retriever.py:48:101
+   |
+46 |         top_item = items[0]
+47 |         assert top_item.memory_id == mem_id
+48 |         # Because it appears in BOTH vector and graph, its RRF score is higher: (1/61) + (1/61) ~ 0.0328
+   |                                                                                                     ^^^^
+49 |         assert top_item.score > 0.03
+   |
+
+Found 22 errors.

@@ -61,6 +61,7 @@ def test_api_coder_task_endpoint() -> None:
     assert "square" in data["final_code"]
     assert data["execution_result"]["stdout"].strip() == "16"
 
+
 def test_regular_user_cannot_execute_sandbox_or_coder_tasks() -> None:
     user_client = TestClient(app, headers=auth_headers("regular-user", "user"))
     sandbox_response = user_client.post(
@@ -78,4 +79,3 @@ def test_regular_user_cannot_execute_sandbox_or_coder_tasks() -> None:
     )
     assert sandbox_response.status_code == 403
     assert coder_response.status_code == 403
-

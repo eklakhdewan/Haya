@@ -54,8 +54,7 @@ def test_in_memory_vector_store() -> None:
         # Cross-user deletion must not disclose or mutate another user's record.
         assert await v_store.delete(rec1.id, "attacker-user") is False
         assert any(
-            item.memory_id == rec1.id
-            for item in await v_store.search(user_id, "Python", top_k=5)
+            item.memory_id == rec1.id for item in await v_store.search(user_id, "Python", top_k=5)
         )
 
         # Delete as the owner.

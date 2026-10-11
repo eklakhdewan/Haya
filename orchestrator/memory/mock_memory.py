@@ -103,8 +103,6 @@ class InMemoryGraphStore(GraphStoreAdapter):
         self._relations = [
             relation
             for relation in self._relations
-            if not (
-                relation["memory_id"] == memory_id and relation["user_id"] == user_id
-            )
+            if not (relation["memory_id"] == memory_id and relation["user_id"] == user_id)
         ]
         return True

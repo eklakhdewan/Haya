@@ -115,9 +115,7 @@ class Neo4jGraphAdapter(GraphStoreAdapter):
         RETURN count(m) AS deleted_count
         """
         async with driver.session() as session:
-            cursor = await session.run(
-                cypher, {"memory_id": memory_id, "user_id": user_id}
-            )
+            cursor = await session.run(cypher, {"memory_id": memory_id, "user_id": user_id})
             data = await cursor.single()
             if data and data["deleted_count"] > 0:
                 return True

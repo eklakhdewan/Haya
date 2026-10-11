@@ -362,9 +362,7 @@ class ToolExecuteRequest(BaseModel):
 
 
 @app.post("/v1/tools/execute", response_model=APIResponse[dict[str, Any]])
-async def execute_tool(
-    req: ToolExecuteRequest, request: Request
-) -> APIResponse[dict[str, Any]]:
+async def execute_tool(req: ToolExecuteRequest, request: Request) -> APIResponse[dict[str, Any]]:
     """Execute a registered tool; this control-plane operation is admin-only."""
     _require_admin(request)
     try:
@@ -407,9 +405,7 @@ class CoderTaskRequest(BaseModel):
 
 
 @app.post("/v1/coder/task", response_model=APIResponse[dict[str, Any]])
-async def run_coder_task(
-    req: CoderTaskRequest, request: Request
-) -> APIResponse[dict[str, Any]]:
+async def run_coder_task(req: CoderTaskRequest, request: Request) -> APIResponse[dict[str, Any]]:
     """Run autonomous Coder agent flow; this endpoint is admin-only."""
     _require_admin(request)
     try:
