@@ -20,7 +20,7 @@ class MockLLMProvider(LLMProvider):
             # Memory patterns
             (
                 re.compile(
-                    r"\b(remember|store|save|forget|recall|what did I say about|preference|prefer|favorite|my dog|project milestones|dietary)\b",
+                    r"\b(remember|store|save|forget|recall|what did I say about|"\n                    r"preference|prefer|favorite|my dog|project milestones|dietary)\b",
                     re.I,
                 ),
                 RouteType.MEMORY,
@@ -30,7 +30,7 @@ class MockLLMProvider(LLMProvider):
             # Coder patterns
             (
                 re.compile(
-                    r"\b(write a python script|code|function|debug|execute code|run this program|python)\b",
+                    r"\b(write a python script|code|function|debug|execute code|"\n                    r"run this program|python)\b",
                     re.I,
                 ),
                 RouteType.CODER,
@@ -40,7 +40,7 @@ class MockLLMProvider(LLMProvider):
             # Device patterns
             (
                 re.compile(
-                    r"\b(send sms|text message|make a call|call|open app|wifi|bluetooth|setting|device)\b",
+                    r"\b(send sms|text message|make a call|call|open app|wifi|"\n                    r"bluetooth|setting|device)\b",
                     re.I,
                 ),
                 RouteType.DEVICE,
@@ -50,7 +50,7 @@ class MockLLMProvider(LLMProvider):
             # Tool patterns
             (
                 re.compile(
-                    r"\b(calculate|current time|what time|check.*time|search web|weather|convert)\b",
+                    r"\b(calculate|current time|what time|check.*time|search web|"\n                    r"weather|convert)\b",
                     re.I,
                 ),
                 RouteType.TOOL,
