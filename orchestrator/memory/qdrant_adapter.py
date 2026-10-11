@@ -27,7 +27,7 @@ class QdrantVectorAdapter(VectorStoreAdapter):
 
                 self._client = AsyncQdrantClient(url=self.url, api_key=self.api_key or None)
             except Exception as e:
-                raise ConnectionError(f"Failed to initialize Qdrant client: {e}")
+                raise ConnectionError(f"Failed to initialize Qdrant client: {e}") from e
         return self._client
 
     async def upsert(self, record: MemoryRecord, text: str) -> None:
@@ -83,7 +83,7 @@ class QdrantVectorAdapter(VectorStoreAdapter):
     async def delete(self, memory_id: str, user_id: str) -> bool:
         """Delete a point only if its payload belongs to the requested user."""
         client = self._get_client()
-        from qdrant_client.models import FieldCondition, Filter, MatchValue, PointIdsList
+        from qdrant_client.models import FieldCondition, Filter, MatchValue
 
         owned_point = await client.retrieve(
             collection_name=self.collection_name,
