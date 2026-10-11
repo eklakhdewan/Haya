@@ -42,6 +42,11 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E","F","I","B","UP","SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+# This module embeds HTML/CSS/JavaScript in a Python string, so E501 is not
+# meaningful for its frontend markup. Validate frontend assets separately.
+"orchestrator/dashboard.py" = ["E501"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true
