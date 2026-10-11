@@ -7,7 +7,7 @@ from orchestrator.memory.base import VectorStoreAdapter
 
 
 class QdrantVectorAdapter(VectorStoreAdapter):
-    """Qdrant vector adapter supporting collection creation, metadata payload, and vector similarity."""
+    """Qdrant adapter for collections, metadata, and vector similarity."""
 
     def __init__(
         self,
@@ -35,7 +35,7 @@ class QdrantVectorAdapter(VectorStoreAdapter):
         from qdrant_client.models import PointStruct
 
         # In production, embeddings are calculated via sentence-transformers or Gemini
-        # Here we mock a 384-dimension pseudo-vector for collection storage if embeddings are computed
+        # Use a 384-dimension placeholder until a real embedding provider is wired in.
         vector = [0.1] * 384
 
         payload = {
