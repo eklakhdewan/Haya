@@ -35,11 +35,6 @@ jobs:
         image: qdrant/qdrant:v1.15.4
         ports:
           - 6333:6333
-        options: >-
-          --health-cmd "curl -fsS http://localhost:6333/healthz || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
       neo4j:
         image: neo4j:5-community
         env:
@@ -47,11 +42,6 @@ jobs:
         ports:
           - 7687:7687
           - 7474:7474
-        options: >-
-          --health-cmd "cypher-shell -u neo4j -p test-password-strong 'RETURN 1' || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 20
     env:
       DATABASE_URL: postgresql+asyncpg://hina:hina_test_password@localhost:5432/hina_test
       ENVIRONMENT: testing
@@ -69,6 +59,27 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: python -m pip install --upgrade pip && pip install -r requirements-dev.txt
+      - name: Wait for Qdrant and Neo4j services
+        run: |
+          python - <<'PY'
+          import socket
+          import time
+          from urllib.request import urlopen
+
+          deadline = time.monotonic() + 180
+          while time.monotonic() < deadline:
+              try:
+                  with urlopen("http://localhost:6333/healthz", timeout=2) as response:
+                      if response.status != 200:
+                          raise RuntimeError("Qdrant health endpoint is not ready")
+                  with socket.create_connection(("localhost", 7687), timeout=2):
+                      pass
+                  break
+              except Exception:
+                  time.sleep(2)
+          else:
+              raise RuntimeError("Qdrant or Neo4j did not become ready within 180 seconds")
+          PY
       - name: Compile Python sources
         run: python -m compileall -q orchestrator tests
       - name: Verify migration head
