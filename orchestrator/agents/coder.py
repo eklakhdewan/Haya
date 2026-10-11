@@ -13,7 +13,7 @@ Your job is to generate Python code to fulfill user programming tasks.
 Rules:
 1. Output ONLY runnable, clean Python code. Do not wrap in conversational chit-chat.
 2. If code blocks are needed, format inside standard ```python ... ``` fences.
-3. NEVER write code attempting to access host credentials, files outside the sandbox, or\n   unauthorized network resources.
+3. NEVER access host credentials, files outside the sandbox, or unauthorized network resources.
 """
 
 REPAIR_PROMPT_TEMPLATE = """The previous Python code failed execution in the isolated sandbox.
