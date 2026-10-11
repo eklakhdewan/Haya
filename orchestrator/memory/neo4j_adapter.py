@@ -93,7 +93,9 @@ class Neo4jGraphAdapter(GraphStoreAdapter):
         cypher = """
         MATCH (u:User {id: $user_id})-[:HAS_MEMORY]->(m:Memory {status: 'active'})
         WHERE m.subject CONTAINS $term OR m.object CONTAINS $term OR m.predicate CONTAINS $term
-        RETURN m.id AS memory_id, m.subject AS subject,\n               m.predicate AS predicate, m.object AS object,\n               m.confidence AS confidence
+        RETURN m.id AS memory_id, m.subject AS subject,
+               m.predicate AS predicate, m.object AS object,
+               m.confidence AS confidence
         LIMIT $limit
         """
         results: list[dict[str, Any]] = []
