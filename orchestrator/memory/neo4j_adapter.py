@@ -33,6 +33,20 @@ class Neo4jGraphAdapter(GraphStoreAdapter):
                 raise ConnectionError(f"Could not initialize Neo4j driver: {e}") from e
         return self._driver
 
+    async def initialize(self) -> None:
+        """Verify connectivity and establish uniqueness constraints before serving traffic."""
+        driver = self._get_driver()
+        await driver.verify_connectivity()
+        async with driver.session() as session:
+            await session.run(
+                "CREATE CONSTRAINT haya_memory_id_unique IF NOT EXISTS "
+                "FOR (m:Memory) REQUIRE m.id IS UNIQUE"
+            )
+            await session.run(
+                "CREATE CONSTRAINT haya_user_id_unique IF NOT EXISTS "
+                "FOR (u:User) REQUIRE u.id IS UNIQUE"
+            )
+
     async def close(self) -> None:
         if self._driver:
             await self._driver.close()
