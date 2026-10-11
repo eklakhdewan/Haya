@@ -474,7 +474,7 @@ async def extract_memory(
     req: MemoryExtractRequest, request: Request
 ) -> APIResponse[MemoryExtractResponse]:
     """Extract candidate facts from a bounded transcript for the authenticated user."""
-    user_id = _principal_user_id(request)
+    _principal_user_id(request)
     if sum(len(item.get("content", "")) for item in req.transcript) > 50_000:
         raise HTTPException(status_code=413, detail="Transcript exceeds the 50 KB limit.")
     candidates = await memory_extractor.extract(
