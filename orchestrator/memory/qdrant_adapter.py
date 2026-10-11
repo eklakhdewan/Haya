@@ -55,8 +55,10 @@ class QdrantVectorAdapter(VectorStoreAdapter):
             raise RuntimeError("Semantic memory is unavailable: embedding model is not loaded.")
         vector = await asyncio.to_thread(model.encode, text, normalize_embeddings=True)
         values = vector.tolist()
-        if not isinstance(values, list) or not values or not all(
-            isinstance(value, (int, float)) for value in values
+        if (
+            not isinstance(values, list)
+            or not values
+            or not all(isinstance(value, (int, float)) for value in values)
         ):
             raise RuntimeError("Embedding provider returned an invalid vector.")
         return [float(value) for value in values]
@@ -124,9 +126,7 @@ class QdrantVectorAdapter(VectorStoreAdapter):
         from qdrant_client.models import FieldCondition, Filter, MatchValue
 
         query_vector = await self._embed(query)
-        user_filter = Filter(
-            must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))]
-        )
+        user_filter = Filter(must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))])
         search_result = await client.query_points(
             collection_name=self.collection_name,
             query=query_vector,
