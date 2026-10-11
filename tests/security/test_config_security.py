@@ -99,8 +99,11 @@ def test_mock_sandbox_provider_is_allowed_only_for_testing() -> None:
 
 @pytest.mark.parametrize("environment", ["development", "staging", "production", "testing"])
 def test_e2b_is_default_sandbox_provider(environment: str) -> None:
-    overrides: dict[str, Any] = {"environment": environment}
-    if environment == "production":
+    overrides: dict[str, Any] = {
+        "environment": environment,
+        "e2b_api_key": "test-e2b-key",
+    }
+    if environment in {"staging", "production"}:
         overrides["database_url"] = "postgresql+asyncpg://user:pass@localhost:5432/haya"
     settings = make_settings(**overrides)
     assert settings.sandbox_provider == "e2b"
