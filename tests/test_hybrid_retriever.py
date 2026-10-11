@@ -45,7 +45,7 @@ def test_hybrid_retrieval_and_rrf_fusion() -> None:
         assert len(items) >= 1
         top_item = items[0]
         assert top_item.memory_id == mem_id
-        # Because it appears in BOTH vector and graph, its RRF score is higher: (1/61) + (1/61) ~ 0.0328
+        # Appearing in both vector and graph increases the RRF score: (1/61) + (1/61).
         assert top_item.score > 0.03
 
     asyncio.run(_run())
