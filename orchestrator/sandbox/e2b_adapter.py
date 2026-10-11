@@ -58,6 +58,8 @@ class E2BSandboxAdapter(SandboxAdapter):
             result.stdout = result.stdout[:100_000]
             result.stderr = result.stderr[:20_000]
             return result
+        except ProviderUnavailableError:
+            raise
         except ImportError as exc:
             raise ProviderUnavailableError(
                 "Isolated execution is unavailable: install e2b-code-interpreter."
