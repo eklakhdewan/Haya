@@ -42,22 +42,23 @@ def test_supervisor_route_rejects_cross_user_identity() -> None:
 
 
 def test_websocket_rejects_missing_authentication() -> None:
-    with pytest.raises(WebSocketDisconnect) as error:
-        with client.websocket_connect("/v1/realtime/ws"):
-            pass
+    with pytest.raises(WebSocketDisconnect) as error, client.websocket_connect(
+        "/v1/realtime/ws"
+    ):
+        pass
     assert error.value.code == 4401
 
 
 def test_websocket_rejects_user_identity_mismatch() -> None:
-    with pytest.raises(WebSocketDisconnect) as error:
-        with client.websocket_connect(
-            "/v1/realtime/ws?user_id=other-user",
-            headers=auth_headers("owner-user", "user"),
-        ):
-            pass
+    with pytest.raises(WebSocketDisconnect) as error, client.websocket_connect(
+        "/v1/realtime/ws?user_id=other-user",
+        headers=auth_headers("owner-user", "user"),
+    ):
+        pass
     assert error.value.code == 4403
 
-def _token_with_claims(**overrides: object) -> str:
+
+def _token_with_claims(**overrides: Any) -> str:
     now = int(time.time())
     claims: dict[str, Any] = {
         "sub": "auth-test-user",
