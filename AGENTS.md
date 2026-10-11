@@ -70,8 +70,7 @@ class Tool:
     risk_level: str
     requires_confirmation: bool
 
-    async def execute(self, payload: dict) -> dict:
-        ...
+    async def execute(self, payload: dict) -> dict: ...
 ```
 
 ## 5. Device Agent

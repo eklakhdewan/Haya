@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from typing import Any
+
 from orchestrator.core.models import MemoryQueryItem, MemoryRecord
 
 
@@ -33,7 +34,9 @@ class GraphStoreAdapter(ABC):
         ...
 
     @abstractmethod
-    async def search_relations(self, user_id: str, query: str, top_k: int = 5) -> list[dict[str, Any]]:
+    async def search_relations(
+        self, user_id: str, query: str, top_k: int = 5
+    ) -> list[dict[str, Any]]:
         """Traverse connected entities matching user query."""
         ...
 

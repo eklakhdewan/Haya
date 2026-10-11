@@ -70,7 +70,9 @@ class HybridRetriever:
             rrf_scores[mem_id] = rrf_scores.get(mem_id, 0.0) + (1.0 / (60 + rank))
 
             if mem_id not in item_map:
-                statement = f"{g_item.get('subject')} {g_item.get('predicate')} {g_item.get('object')}"
+                statement = (
+                    f"{g_item.get('subject')} {g_item.get('predicate')} {g_item.get('object')}"
+                )
                 item_map[mem_id] = MemoryQueryItem(
                     memory_id=mem_id,
                     text=statement,

@@ -1,12 +1,11 @@
 """Memory lifecycle management coordinating vector, graph, and audit reconciliation."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
 from orchestrator.core.models import (
     MemoryCandidate,
-    MemoryOperation,
     MemoryQueryItem,
     MemoryRecord,
 )
@@ -29,7 +28,7 @@ class MemoryLifecycleManager:
 
     async def store_candidate(self, user_id: str, candidate: MemoryCandidate) -> MemoryRecord:
         """Persist a memory candidate into both vector and graph stores with provenance."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         record = MemoryRecord(
             id=str(uuid4()),
             user_id=user_id,
@@ -44,7 +43,9 @@ class MemoryLifecycleManager:
             status="active",
         )
 
-        natural_statement = f"User's {candidate.predicate.lower().replace('_', ' ')} is {candidate.object}"
+        natural_statement = (
+            f"User's {candidate.predicate.lower().replace('_', ' ')} is {candidate.object}"
+        )
 
         # 1. Write to vector store
         await self.vector_store.upsert(record, text=natural_statement)
@@ -87,7 +88,7 @@ class MemoryLifecycleManager:
         v_deleted = await self.vector_store.delete(memory_id)
         g_deleted = await self.graph_store.delete_entity(memory_id)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         self._audit_log.append(
             {
                 "event_id": str(uuid4()),

@@ -1,19 +1,23 @@
 """Critical Security Hardening Matrix Tests (TESTING_STRATEGY.md Section 3)."""
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
+
 import pytest
 
 from orchestrator.agents.critic import Critic
-from orchestrator.core.errors import ConfirmationRequiredError, InvalidSchemaError, PolicyDeniedError
+from orchestrator.core.errors import (
+    ConfirmationRequiredError,
+    InvalidSchemaError,
+    PolicyDeniedError,
+)
 from orchestrator.core.models import (
     IntentType,
     MemoryCandidate,
     MemoryEntityType,
     MemoryOperation,
     MobileIntent,
-    RiskLevel,
 )
 from orchestrator.devices.manager import DeviceManager
 from orchestrator.devices.validator import MobileIntentValidator
@@ -63,7 +67,7 @@ def test_sec_03_memory_contains_fake_system_instruction() -> None:
 def test_sec_04_device_action_unallowlisted_intent_type() -> None:
     """Critical Test 4: Device action with unallowlisted intent type is rejected by schema validator."""
     validator = MobileIntentValidator()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     malicious_intent_dict = {
         "intent_id": str(uuid4()),
         "device_id": str(uuid4()),
@@ -79,12 +83,13 @@ def test_sec_04_device_action_unallowlisted_intent_type() -> None:
 
 def test_sec_05_sms_target_changed_after_approval() -> None:
     """A confirmed intent cannot be changed before the approved action is resumed."""
+
     async def _run() -> None:
         manager = DeviceManager()
         device_id = str(uuid4())
         user_id = "user-sec-5"
         manager.register_device(device_id, user_id)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         original_intent = MobileIntent(
             device_id=device_id,
             intent_type=IntentType.SEND_SMS,
@@ -107,10 +112,11 @@ def test_sec_05_sms_target_changed_after_approval() -> None:
 
     asyncio.run(_run())
 
+
 def test_sec_06_expired_device_token_or_intent_replayed() -> None:
     """Critical Test 6: Expired device intent replay is strictly denied."""
     validator = MobileIntentValidator()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expired_intent = MobileIntent(
         device_id=str(uuid4()),
         intent_type=IntentType.OPEN_APP,
@@ -151,11 +157,12 @@ def test_sec_08_sandbox_attempts_secret_access() -> None:
 
 def test_sec_09_revoked_device_blocked_immediately() -> None:
     """Critical Test 9: Revoked device cannot execute any intent — even low-risk ones."""
+
     async def _run() -> None:
         manager = DeviceManager()
         device_id = str(uuid4())
         manager.register_device(device_id, "user-sec-9")
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Revoke the device
         revoked = manager.revoke_device(device_id)
@@ -179,6 +186,7 @@ def test_sec_09_revoked_device_blocked_immediately() -> None:
 
 def test_sec_10_memory_cascading_deletion_propagates() -> None:
     """Critical Test 10: Memory deletion propagates to both vector and graph stores, with audit tombstone."""
+
     async def _run() -> None:
         v_store = InMemoryVectorStore()
         g_store = InMemoryGraphStore()

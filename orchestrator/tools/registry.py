@@ -1,6 +1,7 @@
 """Tool registry for registering, discovering, and dispatching tool executions."""
 
 from typing import Any
+
 from orchestrator.core.errors import InvalidSchemaError
 from orchestrator.tools.base import Tool
 

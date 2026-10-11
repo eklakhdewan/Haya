@@ -45,7 +45,9 @@ response = urllib.request.urlopen('http://example.com')
 """
     result = StaticSecurityChecker.check(code, network="disabled")
     assert result.passed is False
-    assert any("Network import prohibited while network is disabled" in v for v in result.violations)
+    assert any(
+        "Network import prohibited while network is disabled" in v for v in result.violations
+    )
 
     # When network is enabled, urllib should not be blocked by the network rule
     result_enabled = StaticSecurityChecker.check(code, network="enabled")
@@ -59,7 +61,9 @@ with open('.env', 'r') as f:
 """
     result = StaticSecurityChecker.check(code, network="disabled")
     assert result.passed is False
-    assert any("Access to sensitive resource/credential detected: '.env'" in v for v in result.violations)
+    assert any(
+        "Access to sensitive resource/credential detected: '.env'" in v for v in result.violations
+    )
 
 
 def test_syntax_error_handled_gracefully() -> None:

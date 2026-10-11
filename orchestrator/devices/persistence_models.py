@@ -1,10 +1,11 @@
 """SQLAlchemy tables for durable device authorization and replay protection."""
+
 from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Index, JSON, String, false
+from sqlalchemy import JSON, Boolean, DateTime, Index, String, false
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -37,7 +38,9 @@ class PendingConfirmationRecord(SecurityBase):
     user_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     device_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     intent_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     confirmed: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=false()
     )

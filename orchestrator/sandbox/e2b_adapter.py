@@ -1,4 +1,5 @@
 """E2B isolated microVM sandbox adapter; fails closed when isolation is unavailable."""
+
 import asyncio
 import os
 import time
@@ -27,7 +28,9 @@ class E2BSandboxAdapter(SandboxAdapter):
             raise PolicyDeniedError("Sandbox timeout must be between 1000 and 60000 milliseconds.")
         # Egress is denied at the provider boundary; AST checks are only defense-in-depth.
         if network != "disabled":
-            raise PolicyDeniedError("Network-enabled sandbox execution is disabled by security policy.")
+            raise PolicyDeniedError(
+                "Network-enabled sandbox execution is disabled by security policy."
+            )
 
         check = StaticSecurityChecker.check(code, network="disabled")
         if not check.passed:
@@ -59,7 +62,9 @@ class E2BSandboxAdapter(SandboxAdapter):
                 execution_id=str(uuid4()),
                 status="timeout" if is_timeout else "error",
                 stdout="",
-                stderr="Sandbox execution timed out." if is_timeout else f"Sandbox provider failed ({error_type}).",
+                stderr="Sandbox execution timed out."
+                if is_timeout
+                else f"Sandbox provider failed ({error_type}).",
                 exit_code=124 if is_timeout else 1,
                 execution_time_ms=max(0, int((time.monotonic() - started) * 1000)),
             )

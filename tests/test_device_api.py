@@ -1,11 +1,12 @@
 """Integration tests for Android Device Bridge API endpoints."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
+
 from fastapi.testclient import TestClient
-from tests.security_helpers import auth_headers
 
 from orchestrator.main import app
+from tests.security_helpers import auth_headers
 
 client = TestClient(app, headers=auth_headers("user-api-device", "user"))
 
@@ -22,7 +23,7 @@ def test_api_device_lifecycle() -> None:
     assert reg_resp.status_code == 200
     assert reg_resp.json()["data"]["device_id"] == device_id
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # 2. Execute low-risk action (OPEN_APP)
     open_intent = {

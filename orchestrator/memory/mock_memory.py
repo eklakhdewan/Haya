@@ -2,6 +2,7 @@
 
 import re
 from typing import Any
+
 from orchestrator.core.models import MemoryQueryItem, MemoryRecord
 from orchestrator.memory.base import GraphStoreAdapter, VectorStoreAdapter
 
@@ -80,7 +81,9 @@ class InMemoryGraphStore(GraphStoreAdapter):
         }
         self._relations.append(rel)
 
-    async def search_relations(self, user_id: str, query: str, top_k: int = 5) -> list[dict[str, Any]]:
+    async def search_relations(
+        self, user_id: str, query: str, top_k: int = 5
+    ) -> list[dict[str, Any]]:
         q_lower = query.lower()
         results: list[dict[str, Any]] = []
 
@@ -89,9 +92,11 @@ class InMemoryGraphStore(GraphStoreAdapter):
                 continue
 
             # If query mentions subject or object
-            if rel["subject"].lower() in q_lower or rel["object"].lower() in q_lower:
-                results.append(rel)
-            elif any(w in rel["object"].lower() for w in q_lower.split()):
+            if (
+                rel["subject"].lower() in q_lower
+                or rel["object"].lower() in q_lower
+                or any(w in rel["object"].lower() for w in q_lower.split())
+            ):
                 results.append(rel)
 
         return results[:top_k]

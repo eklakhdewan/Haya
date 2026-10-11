@@ -1,8 +1,9 @@
 """Coder Agent implementing the 7-step autonomous development and repair flow."""
 
 from dataclasses import dataclass
+
 from orchestrator.core.models import SandboxExecutionResult
-from orchestrator.providers.base import LLMMessage, LLMProvider
+from orchestrator.providers.base import LLMProvider
 from orchestrator.sandbox.base import SandboxAdapter
 from orchestrator.sandbox.static_checker import StaticSecurityChecker
 

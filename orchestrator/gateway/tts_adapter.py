@@ -10,7 +10,7 @@ class TTSAdapter(ABC):
     """Abstract interface for streaming interruptible TTS synthesis."""
 
     @abstractmethod
-    async def synthesize_stream(
+    def synthesize_stream(
         self,
         text: str,
         cancellation_token: asyncio.Event,
@@ -43,7 +43,7 @@ class MockTTSAdapter(TTSAdapter):
                 break
 
             # Simulated PCM/Opus frame
-            audio_frame = f"[AUDIO_FRAME_{i}:{text[:10]}]".encode("utf-8")
+            audio_frame = f"[AUDIO_FRAME_{i}:{text[:10]}]".encode()
             yield audio_frame
 
 
@@ -67,4 +67,4 @@ class DeepgramFluxTTSAdapter(TTSAdapter):
             if cancellation_token.is_set():
                 break
             await asyncio.sleep(0.02)
-            yield f"[DEEPGRAM_TTS_{i}]".encode("utf-8")
+            yield f"[DEEPGRAM_TTS_{i}]".encode()

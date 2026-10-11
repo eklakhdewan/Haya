@@ -1,4 +1,5 @@
 """Shared test helpers for authenticated API integration tests."""
+
 import time
 
 import jwt

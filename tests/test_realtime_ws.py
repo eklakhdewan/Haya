@@ -1,10 +1,9 @@
 """Integration tests for Realtime Voice WebSocket endpoint."""
 
-import time
 from fastapi.testclient import TestClient
-from tests.security_helpers import auth_headers
 
 from orchestrator.main import app, stt_adapter
+from tests.security_helpers import auth_headers
 
 client = TestClient(app, headers=auth_headers("ws-user", "user"))
 

@@ -1,6 +1,5 @@
 """Supervisor Agent responsible for intent routing, loop capping, and policy enforcement."""
 
-from typing import Any
 from orchestrator.core.models import (
     RouteType,
     SupervisorInput,

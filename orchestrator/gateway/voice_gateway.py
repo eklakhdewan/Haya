@@ -2,7 +2,6 @@
 
 import asyncio
 import time
-from typing import Any
 from uuid import uuid4
 
 from orchestrator.agents.supervisor import Supervisor
@@ -112,7 +111,9 @@ class VoiceGateway:
                 session.emit_event(RealtimeEventType.TOOL_STARTED, {"tool": "calculator"})
                 # Builtin tool execution demo
                 try:
-                    tool_out = await self.tool_registry.execute("calculator", {"expression": "2 + 2"})
+                    tool_out = await self.tool_registry.execute(
+                        "calculator", {"expression": "2 + 2"}
+                    )
                     session.emit_event(RealtimeEventType.TOOL_RESULT, tool_out)
                     response_text = f"The calculated result is {tool_out.get('result', 4)}."
                 except Exception as e:

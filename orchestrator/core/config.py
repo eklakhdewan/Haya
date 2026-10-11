@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # General
     environment: Environment = Environment.DEVELOPMENT
     log_level: str = "INFO"
-    api_host: str = "0.0.0.0"
+    api_host: str = "127.0.0.1"
     api_port: int = 8000
 
     # LLM Provider
@@ -33,7 +33,9 @@ class Settings(BaseSettings):
 
     # Voice / STT / TTS
     deepgram_api_key: str = Field(default="", description="Deepgram API key")
-    deepgram_stt_model: str = Field(default="flux-general-en", description="Deepgram streaming STT model")
+    deepgram_stt_model: str = Field(
+        default="flux-general-en", description="Deepgram streaming STT model"
+    )
     tts_provider: str = Field(default="deepgram", description="Streaming TTS provider")
 
     # Memory Infrastructure
@@ -71,7 +73,10 @@ class Settings(BaseSettings):
     def validate_security_configuration(self) -> "Settings":
         if not self.jwt_secret.strip():
             raise ValueError("JWT_SECRET must be set to a secure random value.")
-        if self.jwt_secret in {"replace-with-a-long-random-secret", "insecure-dev-secret-replace-in-production"}:
+        if self.jwt_secret in {
+            "replace-with-a-long-random-secret",
+            "insecure-dev-secret-replace-in-production",
+        }:
             raise ValueError("Replace the JWT_SECRET placeholder with a unique random secret.")
         if len(self.jwt_secret) < 32:
             raise ValueError("JWT_SECRET must be at least 32 characters long.")
@@ -89,9 +94,7 @@ class Settings(BaseSettings):
             if not self.database_url.startswith(
                 ("postgresql://", "postgresql+asyncpg://", "postgres://")
             ):
-                raise ValueError(
-                    "DATABASE_URL must use a PostgreSQL connection URL."
-                )
+                raise ValueError("DATABASE_URL must use a PostgreSQL connection URL.")
 
         return self
 

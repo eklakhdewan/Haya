@@ -1,16 +1,17 @@
 """PostgreSQL-backed device manager with transactional replay and approval controls."""
+
 from __future__ import annotations
 
 import hashlib
 import hmac
 import json
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import delete, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import IntegrityError
 
 from orchestrator.core.config import get_settings
 from orchestrator.core.database import DatabaseRuntime
@@ -72,7 +73,7 @@ class PersistentDeviceManager:
             if value is None:
                 return None
             parsed = datetime.fromisoformat(value)
-            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
 
         return ActionAuditRecordModel(
             action_id=record.action_id,
@@ -93,7 +94,7 @@ class PersistentDeviceManager:
             if value is None:
                 return None
             if value.tzinfo is None:
-                value = value.replace(tzinfo=timezone.utc)
+                value = value.replace(tzinfo=UTC)
             return value.isoformat()
 
         return ActionAuditRecord(
@@ -114,7 +115,7 @@ class PersistentDeviceManager:
     ) -> DeviceInfo:
         if not device_id.strip() or not user_id.strip():
             raise PolicyDeniedError("device_id and authenticated user_id are required.")
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         async with self.runtime.sessions() as session, session.begin():
             record = await session.scalar(
                 select(DeviceRecord).where(DeviceRecord.device_id == device_id).with_for_update()
@@ -161,7 +162,7 @@ class PersistentDeviceManager:
             return self._device_info(record)
 
     async def revoke_device(self, device_id: str, user_id: str | None = None) -> bool:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         async with self.runtime.sessions() as session, session.begin():
             record = await session.scalar(
                 select(DeviceRecord).where(DeviceRecord.device_id == device_id).with_for_update()
@@ -197,10 +198,8 @@ class PersistentDeviceManager:
             record = await session.scalar(select(DeviceRecord.device_id).where(*conditions))
             return record is not None
 
-    async def confirm_action(
-        self, intent_id: str, token: str, user_id: str | None = None
-    ) -> bool:
-        now = datetime.now(timezone.utc)
+    async def confirm_action(self, intent_id: str, token: str, user_id: str | None = None) -> bool:
+        now = datetime.now(UTC)
         supplied_digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
         async with self.runtime.sessions() as session, session.begin():
             pending = await session.scalar(
@@ -222,7 +221,7 @@ class PersistentDeviceManager:
     async def execute_intent(
         self, intent: MobileIntent, user_id: str = "default-user"
     ) -> dict[str, Any]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         requested_at = now.isoformat()
         risk_level = self.get_risk_level(intent.intent_type)
         fingerprint = self._fingerprint(intent)
@@ -239,16 +238,20 @@ class PersistentDeviceManager:
                     .with_for_update()
                 )
                 if device is None or device.is_revoked or device.user_id != user_id:
-                    session.add(self._audit_model(ActionAuditRecord(
-                        user_id=user_id,
-                        device_id=intent.device_id,
-                        intent_type=intent.intent_type.value,
-                        risk=risk_level.value,
-                        confirmation="denied",
-                        requested_at=requested_at,
-                        result="rejected",
-                        details={"reason": "Device is not authorized for this user."},
-                    )))
+                    session.add(
+                        self._audit_model(
+                            ActionAuditRecord(
+                                user_id=user_id,
+                                device_id=intent.device_id,
+                                intent_type=intent.intent_type.value,
+                                risk=risk_level.value,
+                                confirmation="denied",
+                                requested_at=requested_at,
+                                result="rejected",
+                                details={"reason": "Device is not authorized for this user."},
+                            )
+                        )
+                    )
                     denied_message = "Device is not authorized for this authenticated user."
                 else:
                     pending = await session.scalar(
@@ -270,7 +273,9 @@ class PersistentDeviceManager:
                             )
                         elif intent.expires_at <= now:
                             await session.delete(pending)
-                            denied_message = "Action intent has expired; a new valid intent is required."
+                            denied_message = (
+                                "Action intent has expired; a new valid intent is required."
+                            )
                         else:
                             await session.delete(pending)
                             await session.flush()
@@ -305,46 +310,56 @@ class PersistentDeviceManager:
                                 self.validator.validate_schema(
                                     intent.model_dump(mode="json", exclude_none=True)
                                 )
-                                session.add(UsedNonceRecord(
-                                    nonce=intent.nonce,
-                                    intent_id=intent.intent_id,
-                                    used_at=now,
-                                ))
+                                session.add(
+                                    UsedNonceRecord(
+                                        nonce=intent.nonce,
+                                        intent_id=intent.intent_id,
+                                        used_at=now,
+                                    )
+                                )
                                 await session.flush()
 
                     if denied_message is None and requires_confirmation and not resumed:
                         token = secrets.token_urlsafe(32)
                         ttl = max(1, get_settings().action_confirmation_ttl_seconds)
-                        session.add(PendingConfirmationRecord(
-                            intent_id=intent.intent_id,
-                            token_digest=hashlib.sha256(token.encode("utf-8")).hexdigest(),
-                            user_id=user_id,
-                            device_id=intent.device_id,
-                            intent_fingerprint=fingerprint,
-                            expires_at=now + timedelta(seconds=ttl),
-                            confirmed=False,
-                            created_at=now,
-                        ))
-                        session.add(self._audit_model(ActionAuditRecord(
-                            user_id=user_id,
-                            device_id=intent.device_id,
-                            intent_type=intent.intent_type.value,
-                            risk=risk_level.value,
-                            confirmation="pending",
-                            requested_at=requested_at,
-                            result="requires_confirmation",
-                            details={"intent_fingerprint": fingerprint},
-                        )))
+                        session.add(
+                            PendingConfirmationRecord(
+                                intent_id=intent.intent_id,
+                                token_digest=hashlib.sha256(token.encode("utf-8")).hexdigest(),
+                                user_id=user_id,
+                                device_id=intent.device_id,
+                                intent_fingerprint=fingerprint,
+                                expires_at=now + timedelta(seconds=ttl),
+                                confirmed=False,
+                                created_at=now,
+                            )
+                        )
+                        session.add(
+                            self._audit_model(
+                                ActionAuditRecord(
+                                    user_id=user_id,
+                                    device_id=intent.device_id,
+                                    intent_type=intent.intent_type.value,
+                                    risk=risk_level.value,
+                                    confirmation="pending",
+                                    requested_at=requested_at,
+                                    result="requires_confirmation",
+                                    details={"intent_fingerprint": fingerprint},
+                                )
+                            )
+                        )
                     elif denied_message is None:
                         if pending is not None:
                             await session.delete(pending)
-                        session.add(CompletedIntentRecord(
-                            intent_id=intent.intent_id,
-                            device_id=intent.device_id,
-                            user_id=user_id,
-                            completed_at=now,
-                        ))
-                        executed_at = datetime.now(timezone.utc).isoformat()
+                        session.add(
+                            CompletedIntentRecord(
+                                intent_id=intent.intent_id,
+                                device_id=intent.device_id,
+                                user_id=user_id,
+                                completed_at=now,
+                            )
+                        )
+                        executed_at = datetime.now(UTC).isoformat()
                         audit = ActionAuditRecord(
                             user_id=user_id,
                             device_id=intent.device_id,

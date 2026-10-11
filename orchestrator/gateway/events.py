@@ -1,6 +1,6 @@
 """Realtime event definitions and schemas conforming to API_SPEC.md."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 from uuid import uuid4
@@ -42,6 +42,6 @@ class RealtimeEvent(BaseModel):
     event_id: str = Field(default_factory=lambda: str(uuid4()))
     session_id: str
     event_type: RealtimeEventType
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     trace_id: str = Field(default_factory=lambda: str(uuid4()))
     payload: dict[str, Any] = Field(default_factory=dict)

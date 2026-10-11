@@ -1,6 +1,7 @@
 """Neo4j Knowledge Graph Adapter using parameterized Cypher queries."""
 
 from typing import Any
+
 from orchestrator.core.models import MemoryRecord
 from orchestrator.memory.base import GraphStoreAdapter
 
@@ -17,13 +18,16 @@ class Neo4jGraphAdapter(GraphStoreAdapter):
         self.uri = uri
         self.username = username
         self.password = password
-        self._driver = None
+        self._driver: Any | None = None
 
     def _get_driver(self) -> Any:
         if self._driver is None:
             try:
-                from neo4j import AsyncGraphDatabase  # type: ignore[import-not-found]
-                self._driver = AsyncGraphDatabase.driver(self.uri, auth=(self.username, self.password))
+                from neo4j import AsyncGraphDatabase
+
+                self._driver = AsyncGraphDatabase.driver(
+                    self.uri, auth=(self.username, self.password)
+                )
             except Exception as e:
                 # Driver creation can fail if invalid connection
                 raise ConnectionError(f"Could not initialize Neo4j driver: {e}")
@@ -80,7 +84,9 @@ class Neo4jGraphAdapter(GraphStoreAdapter):
         async with driver.session() as session:
             await session.run(query, params)
 
-    async def search_relations(self, user_id: str, query: str, top_k: int = 5) -> list[dict[str, Any]]:
+    async def search_relations(
+        self, user_id: str, query: str, top_k: int = 5
+    ) -> list[dict[str, Any]]:
         driver = self._get_driver()
 
         # Parameterized search over Memory nodes connected to User

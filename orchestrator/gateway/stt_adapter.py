@@ -1,7 +1,7 @@
 """Streaming Speech-to-Text (STT) adapters for real-time voice."""
 
-from abc import ABC, abstractmethod
 import os
+from abc import ABC, abstractmethod
 
 
 class STTAdapter(ABC):

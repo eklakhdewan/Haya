@@ -1,9 +1,8 @@
 """Device Agent translating natural language into typed, bounded mobile intents."""
 
-import os
 import re
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from orchestrator.core.models import IntentType, MobileIntent
@@ -23,7 +22,7 @@ class DeviceAgent:
         ttl_seconds: int = 60,
     ) -> MobileIntent:
         """Create a typed mobile intent with nonce, expiration, and risk classification."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expires_at = now + timedelta(seconds=ttl_seconds)
         nonce = secrets.token_hex(16)  # 32 characters
         lower = command_text.lower()
@@ -59,7 +58,9 @@ class DeviceAgent:
             )
 
         elif "setting" in lower or "wifi" in lower or "bluetooth" in lower:
-            setting_type = "wifi" if "wifi" in lower else "bluetooth" if "bluetooth" in lower else "general"
+            setting_type = (
+                "wifi" if "wifi" in lower else "bluetooth" if "bluetooth" in lower else "general"
+            )
             return MobileIntent(
                 intent_id=str(uuid4()),
                 device_id=device_id,

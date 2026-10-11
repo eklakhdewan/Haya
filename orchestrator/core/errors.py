@@ -37,12 +37,18 @@ class HinaError(Exception):
 
 
 class AuthRequiredError(HinaError):
-    def __init__(self, message: str = "Authentication credentials required", details: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        message: str = "Authentication credentials required",
+        details: dict[str, Any] | None = None,
+    ) -> None:
         super().__init__(ErrorCode.AUTH_REQUIRED, message, details, status_code=401)
 
 
 class ForbiddenError(HinaError):
-    def __init__(self, message: str = "Access forbidden", details: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self, message: str = "Access forbidden", details: dict[str, Any] | None = None
+    ) -> None:
         super().__init__(ErrorCode.FORBIDDEN, message, details, status_code=403)
 
 
