@@ -82,6 +82,6 @@ class Supervisor:
         if output.route == RouteType.DEVICE and any(
             k in lower_text for k in ["sms", "text", "call", "dial", "setting", "system"]
         ):
-                output.requires_confirmation = True
+            output.requires_confirmation = True
 
         return output
