@@ -90,12 +90,18 @@ class Settings(BaseSettings):
             raise ValueError("SANDBOX_PROVIDER=mock is permitted only when ENVIRONMENT=testing.")
 
         if self.environment in {Environment.STAGING, Environment.PRODUCTION}:
+            if not self.e2b_api_key.strip():
+                raise ValueError("Staging and production require E2B_API_KEY.")
             if not self.neo4j_password.strip() or self.neo4j_password == "change-me":
                 raise ValueError("Staging and production require a non-default NEO4J_PASSWORD.")
-            if not self.qdrant_url.strip():
-                raise ValueError("Staging and production require QDRANT_URL.")
+            if not self.qdrant_url.startswith(("http://", "https://")):
+                raise ValueError("Staging and production require a valid QDRANT_URL.")
+            if not self.neo4j_uri.startswith(("bolt://", "bolt+s://", "neo4j://", "neo4j+s://")):
+                raise ValueError("Staging and production require a valid NEO4J_URI.")
             if not self.embedding_model.strip():
                 raise ValueError("Staging and production require EMBEDDING_MODEL.")
+            if self.environment == Environment.STAGING and not self.database_url.strip():
+                raise ValueError("Staging requires DATABASE_URL for persistent security storage.")
 
         if self.environment == Environment.PRODUCTION:
             if not self.database_url.strip():
