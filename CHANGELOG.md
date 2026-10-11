@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — documentation and audit refresh (2026-10-11)
+
+### Added
+- Post-merge repository audit with source evidence, CI links, severity-ranked findings and remediation order.
+
+### Updated
+- README to reflect the audited main SHA, current CI evidence, actual architecture boundaries and production-readiness limitations.
+- Start guide to use current manifests and prioritize sandbox safety, durable memory, authorization and staging validation.
+- v1 release checklist to remove stale PR/branch/static-analysis status and track remaining P0/P1/P2 gates.
+- Phase 1 security report to distinguish implemented controls and passing CI from unverified production/provider work.
+
+### Important status
+- PR #7 is merged and the configured CI workflows passed on main commit `a3fc5bd01bd4541cbeb07f6c58081760cc53773e`.
+- Haya is **not production-ready** until sandbox selection, durable semantic memory, route/WebSocket authorization, rate/resource controls and deployment recovery gates have evidence.
+
 ## [1.0.0] — 2026-09-21
 
 ### Rebuilt

@@ -106,3 +106,21 @@ Keep only an audit tombstone if required by the chosen privacy policy.
 - The AST checker is defense-in-depth, not a security boundary; isolation must be provided by the external sandbox.
 - Device ownership/revocation, pending approvals, used nonces, completed intent IDs, and action audit events can be persisted in PostgreSQL when `DATABASE_URL` is configured. Production startup fails closed if the database or migrated security schema is unavailable. The in-memory manager remains the development/test fallback when no database URL is configured. PostgreSQL-backed guarantees must be demonstrated by the CI integration suite; durable audit rows are not tamper-evident, and completion records do not guarantee exactly-once external side effects.
 - Run `pytest` and the dedicated security tests before merging. Then perform provider-backed E2B tests and production configuration checks in the target environment.
+
+
+## 10. Current implementation status (reviewed 2026-10-11)
+
+The repository's current CI passes on main commit `a3fc5bd01bd4541cbeb07f6c58081760cc53773e`:
+- [Static Analysis and Security Scanning](https://github.com/eklakhdewan/Haya/actions/runs/38112391755)
+- [Security Regression](https://github.com/eklakhdewan/Haya/actions/runs/38112391747)
+
+These are CI results, not production security certification.
+
+Known release gates still open:
+- `orchestrator/main.py` currently wires in-memory vector and graph stores; Qdrant/Neo4j adapters are not yet the production memory path.
+- Qdrant adapter uses constant placeholder vectors; do not claim semantic embeddings are implemented.
+- The mock sandbox is a test adapter and must be impossible to select for untrusted code in staging/production. E2B must fail closed with no local fallback.
+- Memory lifecycle audit events are currently held in process memory, and cross-store compensation is best-effort.
+- Production identity/token issuance, WebSocket deployment behavior, rate limits, TLS, monitoring and backup/restore require deployment evidence.
+
+Track the detailed findings and exit criteria in [the post-merge audit](docs/POST_MERGE_AUDIT_AND_REMEDIATION_PLAN.md) and [the release checklist](docs/V1_RELEASE_EXECUTION_CHECKLIST.md).

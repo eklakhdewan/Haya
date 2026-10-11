@@ -1,110 +1,97 @@
-# HINA — Autonomous Real-Time AI Companion
+# Haya — Autonomous Real-Time AI Companion
 
-**Version:** 1.0 engineering baseline  
-**Date:** 2026-09-21  
-**Status:** Build-ready specification  
-**Primary goal:** a voice-first autonomous assistant with persistent hybrid memory, safe code execution, controlled device actions, and measurable real-time performance.
+**Engineering status:** security baseline and CI improvements merged; **not production-ready**.  
+**Current audit:** [Post-merge audit and remediation plan](docs/POST_MERGE_AUDIT_AND_REMEDIATION_PLAN.md)  
+**Release tracker:** [v1 execution and release checklist](docs/V1_RELEASE_EXECUTION_CHECKLIST.md)
 
-## 1. What Hina is
+Haya (some legacy modules/docs still use the name Hina) is an agent-orchestration project intended to combine a text/voice assistant, controlled tools, user-scoped memory, isolated code execution and device-action approval.
 
-Hina is not a chat UI with a microphone attached. It is a distributed agent system:
+## Current verified state
+
+- Main branch audited at commit `a3fc5bd01bd4541cbeb07f6c58081760cc53773e` on 2026-10-11.
+- [Static Analysis and Security Scanning passed](https://github.com/eklakhdewan/Haya/actions/runs/38112391755).
+- [Security Regression passed](https://github.com/eklakhdewan/Haya/actions/runs/38112391747).
+- PR #7 added owner-scoped memory deletion, JSON Schema tool input validation, admin checks for sensitive execution routes, request bounds and regression coverage.
+- PostgreSQL-backed device-security storage and migrations are present; CI uses an ephemeral PostgreSQL service.
+
+These checks establish the configured CI jobs passed on that commit. They do **not** establish production deployment readiness or successful validation of every external provider.
+
+## Architecture at a glance
 
 ```text
-User Voice
-   │
-   ▼
-Realtime Transport / Voice Gateway
-   │
-   ├── STT + turn detection
-   ▼
-Agent Orchestrator
-   │
-   ├── Router / Planner
-   ├── Memory retrieval
-   ├── Tool execution
-   ├── Sandbox execution
-   └── Device-action approval
-   │
-   ├──────────────► Hybrid Memory
-   │                  ├── Qdrant
-   │                  └── Neo4j
-   │
-   ├──────────────► Secure Sandbox
-   │                  └── E2B
-   │
-   └──────────────► Android Bridge
-                          │
-                          ▼
-                       Device
+Client / voice input
+        |
+        v
+FastAPI orchestrator ---- JWT authentication / authorization
+        |
+        +---- supervisor and tool registry
+        +---- user-scoped memory lifecycle
+        |        +---- Qdrant adapter (available; not wired as production path yet)
+        |        +---- Neo4j adapter (available; not wired as production path yet)
+        +---- sandbox interface
+        |        +---- E2B provider adapter (requires provider validation)
+        |        +---- restricted mock interpreter (tests only)
+        +---- device-action policy and confirmation
+                 +---- PostgreSQL-backed security state when configured
 ```
 
-## 2. Engineering principle
+The diagram describes intended components as well as current boundaries. See the audit for the difference between implemented code and production-verified integrations.
 
-Build in this order:
+## Quick start
 
-1. deterministic text agent
-2. tools and permissions
-3. memory
-4. secure execution
-5. realtime voice
-6. Android bridge
-7. optimization
-8. production hardening
+Use the current repository manifests and environment template. Do not use old paths from early architecture drafts without checking that they exist in the current tree.
 
-Do **not** begin by trying to make every component realtime. A large distributed system that cannot be tested deterministically is not an achievement; it is technical debt.
+1. Use Python 3.12 and create a virtual environment.
+2. Install development dependencies:
 
-## 3. Definition of done
+   ```bash
+   python -m pip install -r requirements-dev.txt
+   ```
 
-Hina v1 is complete only when:
+3. Configure a local `.env` from the current environment template if present. Set a unique random `JWT_SECRET` of at least 32 characters; never commit real secrets.
+4. Start only the infrastructure required for the feature being tested. The security regression workflow documents the PostgreSQL migration/test path.
+5. Run tests:
 
-- every external provider is behind an interface;
-- all secrets are environment-managed;
-- every device action passes schema + authorization checks;
-- arbitrary code never runs on the host;
-- memory writes are traceable to a source conversation;
-- memory retrieval has an offline evaluation set;
-- voice latency is measured, not guessed;
-- failures degrade safely;
-- CI passes formatting, type checking, unit tests and security checks;
-- deployment can be reproduced from a clean machine.
+   ```bash
+   pytest -q
+   ```
 
-## 4. Security status
+6. Run static checks:
 
-Phase 1 security work is tracked in [`docs/PHASE1_SECURITY_EXECUTION_REPORT.md`](docs/PHASE1_SECURITY_EXECUTION_REPORT.md). Authentication now requires a configured JWT secret; copy `.env.example` and replace its placeholder before starting the API. Do not treat the branch as production-ready until the report's test and provider-validation evidence is complete. See [`SECURITY.md`](SECURITY.md) for the threat model and operational constraints.
+   ```bash
+   ruff check .
+   ruff format --check .
+   mypy --strict orchestrator tests
+   pip-audit -r requirements-dev.txt
+   bandit -r orchestrator -ll
+   ```
 
-## 5. Repository
+Some tests require configured local services. Passing offline/mocked tests does not count as provider-backed validation.
 
-See `docs/REPO_STRUCTURE.md`.
+## Security boundaries
 
-## 6. Start here
+- All non-liveness HTTP routes require a validated bearer JWT in the current middleware.
+- Sensitive tool/sandbox/coder endpoints require an admin principal.
+- Memory deletion APIs include owner-scoped checks.
+- The mock sandbox is not a security boundary and must remain test-only.
+- Production code execution must use the isolated provider adapter and fail closed if it is unavailable.
+- Real durable hybrid memory is not yet wired as the application production path; the Qdrant adapter currently uses placeholder vectors.
+- Configure TLS, secrets, trusted token issuance, rate limits, observability and backup/restore before public deployment.
 
-1. Read `docs/PROJECT_BRIEF.md`.
-2. Read `docs/PRD.md`.
-3. Read `docs/SYSTEM_ARCHITECTURE.md`.
-4. Install `requirements.txt` / `pyproject.toml`.
-5. Copy `.env.example` to `.env`.
-6. Start local infrastructure with `docker compose -f memory_core/docker-compose.yml up -d`.
-7. Run the deterministic text-agent tests before enabling external voice providers.
+See [SECURITY.md](SECURITY.md), [persistent storage notes](docs/security/persistent-storage.md), and the [post-merge audit](docs/POST_MERGE_AUDIT_AND_REMEDIATION_PLAN.md).
 
-## 7. Important architecture correction
+## Documentation map
 
-The original specification mixed WebRTC, raw WebSocket semantics, Rust, Python, React Native, Kotlin and Node.js without defining ownership boundaries. This rebuild makes the boundaries explicit.
+- [Start here](docs/START_HERE.md) — current setup and development sequence.
+- [Post-merge audit and remediation plan](docs/POST_MERGE_AUDIT_AND_REMEDIATION_PLAN.md) — findings, evidence and priority order.
+- [v1 execution and release checklist](docs/V1_RELEASE_EXECUTION_CHECKLIST.md) — source of truth for remaining work and release gates.
+- [Phase 1 security report](docs/PHASE1_SECURITY_EXECUTION_REPORT.md) — security controls and evidence still required.
+- [Security protocol](SECURITY.md) — threat model and operational constraints.
+- [Persistent device-security storage](docs/security/persistent-storage.md) — PostgreSQL setup and boundaries.
+- [Changelog](CHANGELOG.md) — notable changes.
 
-For the first production path, use a managed WebRTC transport such as LiveKit or an equivalent provider rather than implementing the entire realtime media stack from scratch. LiveKit's current Agents stack already handles realtime media/data, interruptions and provider integrations. citeturn0search5turn0search13
+## Definition of done
 
-Rust remains available for a custom low-level gateway only if measured profiling proves it is necessary.
+Do not call Haya production-ready until the exact release SHA passes CI and the release checklist has evidence for real provider execution, durable memory and restart recovery, route/WebSocket authorization, production identity/secrets/TLS, rate/resource limits, monitoring, backup/restore and rollback.
 
-## 8. Current model/provider baseline
-
-Provider choice is intentionally configurable. As of September 2026, Google's Gemini API lists Gemini 3.8 Live for low-latency live voice and Gemini 3.8 Flash for agentic workloads; model IDs are explicitly versioned and production systems should avoid unstable aliases. citeturn1search0turn1search4
-
-Deepgram Flux is a viable streaming STT option with turn detection and interruption-oriented behavior; its current guidance recommends the `/v2/listen` endpoint and 80 ms chunks. citeturn0search11
-
-Qdrant supports dense+sparse hybrid retrieval and RRF fusion, which is the intended retrieval foundation for Hina. citeturn0search1turn0search7
-
-Neo4j supports vector indexes alongside graph queries; current Neo4j documentation recommends the Cypher `SEARCH` syntax for vector queries on recent releases. citeturn0search12
-
-## 9. Non-negotiable safety rule
-
-Hina may be autonomous in planning, but **authority is bounded**. Sending a message, placing a call, changing device settings, executing code with network access, or modifying persistent memory requires an explicit policy decision and, where configured, human confirmation.
-"# Haya" 
+The current state is a stronger engineering baseline, not a production-readiness certification.
