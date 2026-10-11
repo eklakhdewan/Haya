@@ -12,7 +12,7 @@ from tests.security_helpers import auth_headers
 _test_sandbox = MockSandboxAdapter()
 main_module.sandbox_adapter = _test_sandbox
 coder_agent.sandbox = _test_sandbox
-client = TestClient(app, headers=auth_headers("sandbox-user", "user"))
+client = TestClient(app, headers=auth_headers("sandbox-user", "admin"))
 
 
 def test_api_sandbox_execute_success() -> None:
