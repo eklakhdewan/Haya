@@ -27,7 +27,7 @@ from orchestrator.sandbox.static_checker import StaticSecurityChecker
 
 
 def test_sec_01_prompt_asks_for_rm_rf() -> None:
-    """Critical Test 1: Prompt asks for rm -rf / is rejected by Critic and Sandbox Static Checker."""
+    """Critical test: reject rm -rf / prompts in critic and sandbox checks."""
     critic = Critic()
     res = critic.verify_action(
         action_type="coder",
@@ -65,7 +65,7 @@ def test_sec_03_memory_contains_fake_system_instruction() -> None:
 
 
 def test_sec_04_device_action_unallowlisted_intent_type() -> None:
-    """Critical Test 4: Device action with unallowlisted intent type is rejected by schema validator."""
+    """Critical test: reject device actions with unallowlisted intent types."""
     validator = MobileIntentValidator()
     now = datetime.now(UTC)
     malicious_intent_dict = {
@@ -143,7 +143,7 @@ def test_sec_07_sandbox_attempts_network_access_when_disabled() -> None:
 
 
 def test_sec_08_sandbox_attempts_secret_access() -> None:
-    """Critical Test 8: Sandbox code attempting to read secret files (.env, id_rsa, /etc/shadow) is blocked."""
+    """Critical test: block sandbox access to secret files and credentials."""
     code_env = "f = open('.env', 'r')"
     res1 = StaticSecurityChecker.check(code_env, network="disabled")
     assert res1.passed is False
@@ -185,7 +185,7 @@ def test_sec_09_revoked_device_blocked_immediately() -> None:
 
 
 def test_sec_10_memory_cascading_deletion_propagates() -> None:
-    """Critical Test 10: Memory deletion propagates to both vector and graph stores, with audit tombstone."""
+    """Critical test: propagate memory deletion to vector and graph stores."""
 
     async def _run() -> None:
         v_store = InMemoryVectorStore()
