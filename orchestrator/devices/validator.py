@@ -38,9 +38,7 @@ class MobileIntentValidator:
         try:
             jsonschema.validate(instance=intent_dict, schema=schema)
         except jsonschema.ValidationError as e:
-            raise InvalidSchemaError(
-                f"Mobile intent failed schema validation: {e.message}"
-                ) from e
+            raise InvalidSchemaError(f"Mobile intent failed schema validation: {e.message}") from e
 
     def mark_completed(self, intent_id: str) -> None:
         """Mark an intent as executed so it cannot be re-executed."""
