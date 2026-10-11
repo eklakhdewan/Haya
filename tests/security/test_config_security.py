@@ -15,6 +15,7 @@ def make_settings(**overrides: Any) -> Settings:
         "jwt_secret": VALID_JWT_SECRET,
         "neo4j_password": VALID_NEO4J_PASSWORD,
         "database_url": "",
+        "e2b_api_key": "test-e2b-key",
     }
     values.update(overrides)
     return Settings.model_validate(values)
@@ -91,6 +92,15 @@ def test_mock_sandbox_provider_is_rejected_outside_testing(environment: str) -> 
     with pytest.raises(ValidationError, match="SANDBOX_PROVIDER=mock"):
         make_settings(environment=environment, sandbox_provider="mock")
 
+
+
+def test_staging_rejects_missing_e2b_credentials() -> None:
+    with pytest.raises(ValidationError, match="E2B_API_KEY"):
+        make_settings(
+            environment="staging",
+            database_url="postgresql+asyncpg://user:pass@localhost:5432/haya",
+            e2b_api_key="",
+        )
 
 def test_mock_sandbox_provider_is_allowed_only_for_testing() -> None:
     settings = make_settings(environment="testing", sandbox_provider="mock")
