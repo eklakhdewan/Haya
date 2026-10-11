@@ -30,7 +30,7 @@ class Neo4jGraphAdapter(GraphStoreAdapter):
                 )
             except Exception as e:
                 # Driver creation can fail if invalid connection
-                raise ConnectionError(f"Could not initialize Neo4j driver: {e}")
+                raise ConnectionError(f"Could not initialize Neo4j driver: {e}") from e
         return self._driver
 
     async def close(self) -> None:
@@ -93,7 +93,9 @@ class Neo4jGraphAdapter(GraphStoreAdapter):
         cypher = """
         MATCH (u:User {id: $user_id})-[:HAS_MEMORY]->(m:Memory {status: 'active'})
         WHERE m.subject CONTAINS $term OR m.object CONTAINS $term OR m.predicate CONTAINS $term
-        RETURN m.id AS memory_id, m.subject AS subject, m.predicate AS predicate, m.object AS object, m.confidence AS confidence
+        RETURN m.id AS memory_id, m.subject AS subject,
+               m.predicate AS predicate, m.object AS object,
+               m.confidence AS confidence
         LIMIT $limit
         """
         results: list[dict[str, Any]] = []
@@ -104,16 +106,16 @@ class Neo4jGraphAdapter(GraphStoreAdapter):
                 results.append(r)
         return results
 
-    async def delete_entity(self, memory_id: str) -> bool:
+    async def delete_entity(self, memory_id: str, user_id: str) -> bool:
+        """Delete a memory only when linked to the authenticated owner."""
         driver = self._get_driver()
         cypher = """
-        MATCH (m:Memory {id: $memory_id})
-        SET m.status = 'deleted'
+        MATCH (u:User {id: $user_id})-[:HAS_MEMORY]->(m:Memory {id: $memory_id})
         DETACH DELETE m
         RETURN count(m) AS deleted_count
         """
         async with driver.session() as session:
-            cursor = await session.run(cypher, {"memory_id": memory_id})
+            cursor = await session.run(cypher, {"memory_id": memory_id, "user_id": user_id})
             data = await cursor.single()
             if data and data["deleted_count"] > 0:
                 return True

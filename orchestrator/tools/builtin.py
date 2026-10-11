@@ -79,7 +79,7 @@ class CalculatorTool(Tool):
         except ZeroDivisionError as e:
             return {"expression": expr, "error": str(e), "result": None}
         except Exception as e:
-            raise InvalidSchemaError(f"Failed to calculate expression: {e}")
+            raise InvalidSchemaError(f"Failed to calculate expression: {e}") from e
 
 
 class TimeTool(Tool):

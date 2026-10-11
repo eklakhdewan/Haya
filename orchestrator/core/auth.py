@@ -6,7 +6,7 @@ Use short-lived HS256 tokens and rotate JWT_SECRET through deployment secrets.
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Annotated, Any, cast
 
 import jwt
 from fastapi import Depends, HTTPException, Request
@@ -48,7 +48,7 @@ def decode_access_token(token: str) -> dict[str, Any]:
 
 
 async def require_principal(
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> dict[str, Any]:
     """FastAPI dependency returning validated claims from a Bearer token."""
     if credentials is None or credentials.scheme.lower() != "bearer":

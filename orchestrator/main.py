@@ -345,7 +345,7 @@ async def route_intent(payload: SupervisorInput, request: Request) -> APIRespons
         raise HTTPException(
             status_code=e.status_code,
             detail={"code": e.code.value, "message": e.message, "details": e.details},
-        )
+        ) from e
 
 
 # --- Tool Endpoints ---
@@ -356,13 +356,15 @@ async def list_tools() -> APIResponse[list[dict[str, Any]]]:
 
 
 class ToolExecuteRequest(BaseModel):
-    tool_name: str
-    payload: dict[str, Any]
+    model_config = {"extra": "forbid"}
+    tool_name: str = Field(min_length=1, max_length=100)
+    payload: dict[str, Any] = Field(max_length=100)
 
 
 @app.post("/v1/tools/execute", response_model=APIResponse[dict[str, Any]])
-async def execute_tool(req: ToolExecuteRequest) -> APIResponse[dict[str, Any]]:
-    """Execute a registered tool with schema validation."""
+async def execute_tool(req: ToolExecuteRequest, request: Request) -> APIResponse[dict[str, Any]]:
+    """Execute a registered tool; this control-plane operation is admin-only."""
+    _require_admin(request)
     try:
         result = await tool_registry.execute(req.tool_name, req.payload)
         return APIResponse(data=result)
@@ -370,13 +372,18 @@ async def execute_tool(req: ToolExecuteRequest) -> APIResponse[dict[str, Any]]:
         raise HTTPException(
             status_code=e.status_code,
             detail={"code": e.code.value, "message": e.message, "details": e.details},
-        )
+        ) from e
 
 
 # --- Sandbox Endpoints ---
 @app.post("/v1/sandbox/execute", response_model=APIResponse[SandboxExecutionResult])
-async def execute_sandbox(req: SandboxExecuteRequest) -> APIResponse[SandboxExecutionResult]:
-    """Execute code in isolated sandbox per API_SPEC."""
+async def execute_sandbox(
+    req: SandboxExecuteRequest, request: Request
+) -> APIResponse[SandboxExecutionResult]:
+    """Execute code in the isolated sandbox; this endpoint is admin-only."""
+    _require_admin(request)
+    if len(req.code) > 100_000:
+        raise HTTPException(status_code=413, detail="Code exceeds the 100 KB limit.")
     try:
         result = await sandbox_adapter.execute(
             code=req.code,
@@ -388,7 +395,7 @@ async def execute_sandbox(req: SandboxExecuteRequest) -> APIResponse[SandboxExec
         raise HTTPException(
             status_code=e.status_code,
             detail={"code": e.code.value, "message": e.message, "details": e.details},
-        )
+        ) from e
 
 
 class CoderTaskRequest(BaseModel):
@@ -398,8 +405,9 @@ class CoderTaskRequest(BaseModel):
 
 
 @app.post("/v1/coder/task", response_model=APIResponse[dict[str, Any]])
-async def run_coder_task(req: CoderTaskRequest) -> APIResponse[dict[str, Any]]:
-    """Run autonomous Coder agent flow (generate -> check -> execute -> repair)."""
+async def run_coder_task(req: CoderTaskRequest, request: Request) -> APIResponse[dict[str, Any]]:
+    """Run autonomous Coder agent flow; this endpoint is admin-only."""
+    _require_admin(request)
     try:
         result = await coder_agent.run(
             task_description=req.task,
@@ -419,7 +427,7 @@ async def run_coder_task(req: CoderTaskRequest) -> APIResponse[dict[str, Any]]:
         raise HTTPException(
             status_code=e.status_code,
             detail={"code": e.code.value, "message": e.message, "details": e.details},
-        )
+        ) from e
 
 
 # --- Memory Endpoints ---
@@ -448,8 +456,9 @@ async def query_memory(
 
 
 class MemoryExtractRequest(BaseModel):
-    session_id: str
-    transcript: list[dict[str, str]]
+    model_config = {"extra": "forbid"}
+    session_id: str = Field(min_length=1, max_length=200)
+    transcript: list[dict[str, str]] = Field(min_length=1, max_length=100)
 
 
 class MemoryExtractResponse(BaseModel):
@@ -457,8 +466,13 @@ class MemoryExtractResponse(BaseModel):
 
 
 @app.post("/v1/memory/extract", response_model=APIResponse[MemoryExtractResponse])
-async def extract_memory(req: MemoryExtractRequest) -> APIResponse[MemoryExtractResponse]:
-    """Extract candidate facts from turn transcript per API_SPEC."""
+async def extract_memory(
+    req: MemoryExtractRequest, request: Request
+) -> APIResponse[MemoryExtractResponse]:
+    """Extract candidate facts from a bounded transcript for the authenticated user."""
+    _principal_user_id(request)
+    if sum(len(item.get("content", "")) for item in req.transcript) > 50_000:
+        raise HTTPException(status_code=413, detail="Transcript exceeds the 50 KB limit.")
     candidates = await memory_extractor.extract(
         transcript=req.transcript,
         turn_id=req.session_id,
@@ -545,7 +559,7 @@ async def submit_device_action(
         raise HTTPException(
             status_code=e.status_code,
             detail={"code": e.code.value, "message": e.message, "details": e.details},
-        )
+        ) from e
 
 
 class DeviceConfirmRequest(BaseModel):

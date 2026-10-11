@@ -42,6 +42,17 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E","F","I","B","UP","SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+# This module embeds HTML/CSS/JavaScript in a Python string, so E501 is not
+# meaningful for its frontend markup. Validate frontend assets separately.
+"orchestrator/dashboard.py" = ["E501"]
+# These str/Enum declarations are intentional public model types; converting
+# them to StrEnum or PEP 695 generic syntax is a separate compatibility change.
+"orchestrator/core/config.py" = ["UP042"]
+"orchestrator/core/errors.py" = ["UP042"]
+"orchestrator/core/models.py" = ["UP042", "UP046"]
+"orchestrator/gateway/events.py" = ["UP042"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true
@@ -53,3 +64,6 @@ pythonpath = ["."]
 
 [tool.setuptools.packages.find]
 include = ["orchestrator*"]
+
+
+

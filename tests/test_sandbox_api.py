@@ -12,7 +12,7 @@ from tests.security_helpers import auth_headers
 _test_sandbox = MockSandboxAdapter()
 main_module.sandbox_adapter = _test_sandbox
 coder_agent.sandbox = _test_sandbox
-client = TestClient(app, headers=auth_headers("sandbox-user", "user"))
+client = TestClient(app, headers=auth_headers("sandbox-user", "admin"))
 
 
 def test_api_sandbox_execute_success() -> None:
@@ -60,3 +60,22 @@ def test_api_coder_task_endpoint() -> None:
     assert data["success"] is True
     assert "square" in data["final_code"]
     assert data["execution_result"]["stdout"].strip() == "16"
+
+
+def test_regular_user_cannot_execute_sandbox_or_coder_tasks() -> None:
+    user_client = TestClient(app, headers=auth_headers("regular-user", "user"))
+    sandbox_response = user_client.post(
+        "/v1/sandbox/execute",
+        json={
+            "language": "python",
+            "code": "print(1 + 1)",
+            "timeout_ms": 3000,
+            "network": "disabled",
+        },
+    )
+    coder_response = user_client.post(
+        "/v1/coder/task",
+        json={"task": "Write a hello function", "timeout_ms": 3000, "network": "disabled"},
+    )
+    assert sandbox_response.status_code == 403
+    assert coder_response.status_code == 403

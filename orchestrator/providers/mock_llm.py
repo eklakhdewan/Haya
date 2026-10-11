@@ -20,7 +20,8 @@ class MockLLMProvider(LLMProvider):
             # Memory patterns
             (
                 re.compile(
-                    r"\b(remember|store|save|forget|recall|what did I say about|preference|prefer|favorite|my dog|project milestones|dietary)\b",
+                    r"\b(remember|store|save|forget|recall|what did I say about|"
+                    r"preference|prefer|favorite|my dog|project milestones|dietary)\b",
                     re.I,
                 ),
                 RouteType.MEMORY,
@@ -30,7 +31,8 @@ class MockLLMProvider(LLMProvider):
             # Coder patterns
             (
                 re.compile(
-                    r"\b(write a python script|code|function|debug|execute code|run this program|python)\b",
+                    r"\b(write a python script|code|function|debug|execute code|"
+                    r"run this program|python)\b",
                     re.I,
                 ),
                 RouteType.CODER,
@@ -40,7 +42,8 @@ class MockLLMProvider(LLMProvider):
             # Device patterns
             (
                 re.compile(
-                    r"\b(send sms|text message|make a call|call|open app|wifi|bluetooth|setting|device)\b",
+                    r"\b(send sms|text message|make a call|call|open app|wifi|"
+                    r"bluetooth|setting|device)\b",
                     re.I,
                 ),
                 RouteType.DEVICE,
@@ -50,7 +53,8 @@ class MockLLMProvider(LLMProvider):
             # Tool patterns
             (
                 re.compile(
-                    r"\b(calculate|current time|what time|check.*time|search web|weather|convert)\b",
+                    r"\b(calculate|current time|what time|check.*time|search web|"
+                    r"weather|convert)\b",
                     re.I,
                 ),
                 RouteType.TOOL,
@@ -98,7 +102,8 @@ class MockLLMProvider(LLMProvider):
         # Generic default initialization if possible
         try:
             return response_schema.model_validate({})
-        except Exception:
+        except Exception as err:
             raise NotImplementedError(
-                f"MockLLMProvider requires pre-registered handler for schema: {response_schema.__name__}"
-            )
+                "MockLLMProvider requires pre-registered handler for schema: "
+                f"{response_schema.__name__}"
+            ) from err

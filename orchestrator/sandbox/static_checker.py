@@ -11,7 +11,7 @@ class StaticCheckResult:
 
 
 class StaticSecurityChecker:
-    """Performs static syntax and AST analysis to enforce code isolation policies before execution."""
+    """Use static syntax and AST analysis to enforce sandbox isolation policies."""
 
     ALWAYS_PROHIBITED_MODULES = {
         "subprocess",
@@ -68,7 +68,8 @@ class StaticSecurityChecker:
 
         if len(code) > cls.MAX_CODE_CHARS:
             violations.append(
-                f"Code length ({len(code)} chars) exceeds maximum allowed limit ({cls.MAX_CODE_CHARS} chars)."
+                f"Code length ({len(code)} chars) exceeds the maximum "
+                f"allowed limit ({cls.MAX_CODE_CHARS} chars)."
             )
 
         # 1. Parse AST

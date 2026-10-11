@@ -4,17 +4,13 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from orchestrator.core.models import (
-    MemoryCandidate,
-    MemoryQueryItem,
-    MemoryRecord,
-)
+from orchestrator.core.models import MemoryCandidate, MemoryQueryItem, MemoryRecord
 from orchestrator.memory.base import GraphStoreAdapter, VectorStoreAdapter
 from orchestrator.memory.hybrid_retriever import HybridRetriever
 
 
 class MemoryLifecycleManager:
-    """Coordinates writes, cascading deletions, provenance, and audit logs across memory stores."""
+    """Coordinate memory writes, owner-scoped deletion, provenance, and audit events."""
 
     def __init__(
         self,
@@ -27,7 +23,7 @@ class MemoryLifecycleManager:
         self._audit_log: list[dict[str, Any]] = []
 
     async def store_candidate(self, user_id: str, candidate: MemoryCandidate) -> MemoryRecord:
-        """Persist a memory candidate into both vector and graph stores with provenance."""
+        """Write a candidate to both stores and compensate if the second write fails."""
         now = datetime.now(UTC)
         record = MemoryRecord(
             id=str(uuid4()),
@@ -42,18 +38,16 @@ class MemoryLifecycleManager:
             updated_at=now,
             status="active",
         )
+        statement = f"User's {candidate.predicate.lower().replace('_', ' ')} is {candidate.object}"
+        await self.vector_store.upsert(record, text=statement)
+        try:
+            await self.graph_store.add_entity_relation(user_id, record)
+        except Exception:
+            # Best-effort compensation. A production adapter should additionally
+            # reconcile failed cross-store writes using a durable outbox/job.
+            await self.vector_store.delete(record.id, user_id)
+            raise
 
-        natural_statement = (
-            f"User's {candidate.predicate.lower().replace('_', ' ')} is {candidate.object}"
-        )
-
-        # 1. Write to vector store
-        await self.vector_store.upsert(record, text=natural_statement)
-
-        # 2. Write to graph store
-        await self.graph_store.add_entity_relation(user_id, record)
-
-        # 3. Log audit event
         self._audit_log.append(
             {
                 "event_id": str(uuid4()),
@@ -62,10 +56,9 @@ class MemoryLifecycleManager:
                 "user_id": user_id,
                 "timestamp": now.isoformat(),
                 "provenance_turn_id": candidate.source_turn_id,
-                "statement": natural_statement,
+                "statement": statement,
             }
         )
-
         return record
 
     async def query(
@@ -75,7 +68,7 @@ class MemoryLifecycleManager:
         top_k: int = 5,
         include_graph: bool = True,
     ) -> list[MemoryQueryItem]:
-        """Perform concurrent hybrid search."""
+        """Perform concurrent hybrid search for one authenticated user."""
         return await self.retriever.retrieve(
             user_id=user_id,
             query=query_text,
@@ -84,27 +77,26 @@ class MemoryLifecycleManager:
         )
 
     async def delete_memory(self, user_id: str, memory_id: str) -> bool:
-        """Propagate memory deletion across vector and graph layers with audit tombstone."""
-        v_deleted = await self.vector_store.delete(memory_id)
-        g_deleted = await self.graph_store.delete_entity(memory_id)
-
-        now = datetime.now(UTC)
-        self._audit_log.append(
-            {
-                "event_id": str(uuid4()),
-                "event_type": "MEMORY_DELETED",
-                "memory_id": memory_id,
-                "user_id": user_id,
-                "timestamp": now.isoformat(),
-                "vector_cleared": v_deleted,
-                "graph_cleared": g_deleted,
-            }
-        )
-
-        return v_deleted or g_deleted
+        """Delete only the authenticated user's record and relationships."""
+        vector_deleted = await self.vector_store.delete(memory_id, user_id)
+        graph_deleted = await self.graph_store.delete_entity(memory_id, user_id)
+        deleted = vector_deleted or graph_deleted
+        if deleted:
+            self._audit_log.append(
+                {
+                    "event_id": str(uuid4()),
+                    "event_type": "MEMORY_DELETED",
+                    "memory_id": memory_id,
+                    "user_id": user_id,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                    "vector_cleared": vector_deleted,
+                    "graph_cleared": graph_deleted,
+                }
+            )
+        return deleted
 
     def get_audit_trail(self, user_id: str | None = None) -> list[dict[str, Any]]:
-        """Return immutable audit log of memory modifications."""
-        if user_id:
-            return [evt for evt in self._audit_log if evt.get("user_id") == user_id]
+        """Return audit events, optionally scoped to a user."""
+        if user_id is not None:
+            return [event for event in self._audit_log if event.get("user_id") == user_id]
         return list(self._audit_log)

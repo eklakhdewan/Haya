@@ -1,4 +1,3 @@
-
 """Deterministic mock sandbox for offline tests.
 
 This adapter interprets a restricted Python subset. It is not a secure
@@ -94,20 +93,14 @@ class _MockInterpreter:
             return
 
         if isinstance(node, ast.Return):
-            raise _ReturnSignal(
-                self._expression(node.value, env) if node.value else None
-            )
+            raise _ReturnSignal(self._expression(node.value, env) if node.value else None)
 
         if isinstance(node, ast.Raise):
             if not isinstance(node.exc, ast.Call):
                 raise ValueError("Only explicit exception constructors are supported")
             if not isinstance(node.exc.func, ast.Name):
                 raise ValueError("Unsupported exception constructor")
-            message = (
-                str(self._expression(node.exc.args[0], env))
-                if node.exc.args
-                else ""
-            )
+            message = str(self._expression(node.exc.args[0], env)) if node.exc.args else ""
             if node.exc.func.id == "ValueError":
                 raise ValueError(message)
             if node.exc.func.id == "TypeError":
@@ -170,9 +163,7 @@ class _MockInterpreter:
 
         if isinstance(node, ast.Compare):
             left = self._expression(node.left, env)
-            for operation_node, comparator in zip(
-                node.ops, node.comparators, strict=True
-            ):
+            for operation_node, comparator in zip(node.ops, node.comparators, strict=True):
                 operation = _COMPARE_OPERATORS.get(type(operation_node))
                 if operation is None:
                     raise ValueError("Unsupported comparison")

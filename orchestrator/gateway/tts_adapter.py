@@ -20,7 +20,7 @@ class TTSAdapter(ABC):
 
 
 class MockTTSAdapter(TTSAdapter):
-    """Deterministic Mock TTS producing simulated audio chunks that respect barge-in cancellation."""
+    """Deterministic mock TTS with barge-in cancellation support."""
 
     def __init__(self, chunk_count: int = 5, delay_per_chunk_s: float = 0.01) -> None:
         self.chunk_count = chunk_count

@@ -20,8 +20,8 @@ class VectorStoreAdapter(ABC):
         ...
 
     @abstractmethod
-    async def delete(self, memory_id: str) -> bool:
-        """Delete vector record by memory ID."""
+    async def delete(self, memory_id: str, user_id: str) -> bool:
+        """Delete a vector record only when it belongs to the supplied user."""
         ...
 
 
@@ -41,6 +41,6 @@ class GraphStoreAdapter(ABC):
         ...
 
     @abstractmethod
-    async def delete_entity(self, memory_id: str) -> bool:
-        """Delete memory node and associated relationships."""
+    async def delete_entity(self, memory_id: str, user_id: str) -> bool:
+        """Delete a memory node only when it belongs to the supplied user."""
         ...

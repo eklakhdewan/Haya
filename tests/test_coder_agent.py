@@ -16,7 +16,8 @@ def test_coder_agent_direct_success() -> None:
         # Register successful Python code response
         llm.register_text_response(
             "fibonacci",
-            "```python\ndef fib(n):\n    return n if n <= 1 else fib(n-1) + fib(n-2)\nprint(fib(5))\n```",
+            "```python\ndef fib(n):\n    return n if n <= 1 else fib(n-1) + fib(n-2)\n"
+            "print(fib(5))\n```",
         )
 
         result = await coder.run("Write a fibonacci function", timeout_ms=3000)

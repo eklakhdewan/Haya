@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from jsonschema import SchemaError, ValidationError, validate
+
 from orchestrator.core.errors import InvalidSchemaError
 from orchestrator.tools.base import Tool
 
@@ -26,27 +28,26 @@ class ToolRegistry:
         """Return list of tool metadata schemas for LLM function calling."""
         return [
             {
-                "name": t.name,
-                "description": t.description,
-                "input_schema": t.input_schema,
-                "risk_level": t.risk_level.value,
-                "requires_confirmation": t.requires_confirmation,
+                "name": tool.name,
+                "description": tool.description,
+                "input_schema": tool.input_schema,
+                "risk_level": tool.risk_level.value,
+                "requires_confirmation": tool.requires_confirmation,
             }
-            for t in self._tools.values()
+            for tool in self._tools.values()
         ]
 
     async def execute(self, tool_name: str, payload: dict[str, Any]) -> dict[str, Any]:
-        """Execute a tool with input schema validation."""
+        """Validate a complete JSON Schema before invoking a tool."""
         tool = self.get(tool_name)
-        if not tool:
+        if tool is None:
             raise InvalidSchemaError(f"Tool '{tool_name}' not found in registry.")
-
-        # Basic schema check for required fields if defined in input_schema
-        required_fields = tool.input_schema.get("required", [])
-        for field in required_fields:
-            if field not in payload:
-                raise InvalidSchemaError(
-                    f"Missing required parameter '{field}' for tool '{tool_name}'"
-                )
-
-        return await tool.execute(payload)
+        try:
+            validate(instance=payload, schema=tool.input_schema)
+        except (ValidationError, SchemaError) as exc:
+            reason = exc.message if isinstance(exc, ValidationError) else "invalid tool schema"
+            raise InvalidSchemaError(f"Invalid payload for tool '{tool_name}': {reason}") from exc
+        result = await tool.execute(payload)
+        if not isinstance(result, dict):
+            raise InvalidSchemaError(f"Tool '{tool_name}' returned an invalid result type.")
+        return result
