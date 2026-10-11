@@ -51,7 +51,14 @@ def test_in_memory_vector_store() -> None:
         assert len(results_hina) >= 1
         assert results_hina[0].memory_id == rec2.id
 
-        # Delete
+        # Cross-user deletion must not disclose or mutate another user's record.
+        assert await v_store.delete(rec1.id, "attacker-user") is False
+        assert any(
+            item.memory_id == rec1.id
+            for item in await v_store.search(user_id, "Python", top_k=5)
+        )
+
+        # Delete as the owner.
         del_res = await v_store.delete(rec1.id, user_id)
         assert del_res is True
 
@@ -88,7 +95,11 @@ def test_in_memory_graph_store() -> None:
         assert rels[0]["predicate"] == "WORKS_ON"
         assert rels[0]["object"] == "HINA_COMPANION"
 
-        # Delete relation
+        # Cross-user deletion must not remove another user's graph relation.
+        assert await g_store.delete_entity(rec.id, "attacker-user") is False
+        assert len(await g_store.search_relations(user_id, "HINA_COMPANION", top_k=5)) == 1
+
+        # Delete relation as the owner.
         deleted = await g_store.delete_entity(rec.id, user_id)
         assert deleted is True
 
