@@ -80,12 +80,26 @@ class QdrantVectorAdapter(VectorStoreAdapter):
             )
         return items
 
-    async def delete(self, memory_id: str) -> bool:
+    async def delete(self, memory_id: str, user_id: str) -> bool:
+        """Delete a point only if its payload belongs to the requested user."""
         client = self._get_client()
-        from qdrant_client.models import PointIdsList
+        from qdrant_client.models import FieldCondition, Filter, MatchValue, PointIdsList
 
+        owned_point = await client.retrieve(
+            collection_name=self.collection_name,
+            ids=[memory_id],
+            with_payload=["user_id"],
+            with_vectors=False,
+        )
+        if not owned_point or (owned_point[0].payload or {}).get("user_id") != user_id:
+            return False
         res = await client.delete(
             collection_name=self.collection_name,
-            points_selector=PointIdsList(points=[memory_id]),
+            points_selector=Filter(
+                must=[
+                    FieldCondition(key="user_id", match=MatchValue(value=user_id)),
+                    FieldCondition(key="memory_id", match=MatchValue(value=memory_id)),
+                ]
+            ),
         )
         return getattr(res, "status", "") == "completed"
