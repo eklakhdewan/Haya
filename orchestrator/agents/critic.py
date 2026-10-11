@@ -6,7 +6,7 @@ from orchestrator.core.models import CriticCheckResult, IntentType, RiskLevel
 
 
 class Critic:
-    """Evaluates proposed actions against security policies, ground truth, and confirmation requirements."""
+    """Evaluate actions against policies, ground truth, and confirmation requirements."""
 
     PROHIBITED_COMMAND_PATTERNS = [
         "rm -rf",
