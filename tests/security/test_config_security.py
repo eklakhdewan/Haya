@@ -86,8 +86,9 @@ def test_production_rejects_default_neo4j_password() -> None:
         )
 
 
-
-@pytest.mark.parametrize("environment", ["development", "staging", "production"])
+@pytest.mark.parametrize(
+    "environment", ["development", "staging", "production"]
+)
 def test_mock_sandbox_provider_is_rejected_outside_testing(environment: str) -> None:
     with pytest.raises(ValidationError, match="SANDBOX_PROVIDER=mock"):
         make_settings(environment=environment, sandbox_provider="mock")
