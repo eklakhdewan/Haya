@@ -102,6 +102,7 @@ def test_staging_rejects_missing_e2b_credentials() -> None:
             e2b_api_key="",
         )
 
+
 def test_mock_sandbox_provider_is_allowed_only_for_testing() -> None:
     settings = make_settings(environment="testing", sandbox_provider="mock")
     assert settings.sandbox_provider == "mock"
