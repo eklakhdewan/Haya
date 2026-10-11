@@ -1,6 +1,5 @@
 """Memory Candidate Extractor implementing the Memory Agent contract."""
 
-import re
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -120,7 +119,8 @@ class MemoryExtractor:
                 value_start = project_at + len(marker)
                 if lower[value_start:].startswith("the "):
                     value_start += len("the ")
-                raw = lower[value_start:].split(maxsplit=1)[0] if lower[value_start:].split() else ""
+                project_parts = lower[value_start:].split(maxsplit=1)
+                raw = project_parts[0] if project_parts else ""
                 project = bounded_value(raw, 100).upper()
                 if project and all(char.isalnum() or char in "-_" for char in project):
                     candidates.append(
