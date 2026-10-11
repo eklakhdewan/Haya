@@ -1,9 +1,13 @@
 """HTTP and WebSocket authentication boundary regression tests."""
 
+import time
+
+import jwt
 import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from orchestrator.core.config import get_settings
 from orchestrator.main import app
 from tests.security_helpers import auth_headers
 
@@ -51,3 +55,32 @@ def test_websocket_rejects_user_identity_mismatch() -> None:
         ):
             pass
     assert error.value.code == 4403
+
+def _token_with_claims(**overrides: object) -> str:
+    now = int(time.time())
+    claims: dict[str, object] = {
+        "sub": "auth-test-user",
+        "role": "user",
+        "iss": get_settings().jwt_issuer,
+        "aud": get_settings().jwt_audience,
+        "iat": now,
+        "exp": now + 300,
+    }
+    claims.update(overrides)
+    return jwt.encode(claims, get_settings().jwt_secret, algorithm="HS256")
+
+
+@pytest.mark.parametrize(
+    "claims",
+    [
+        {"iss": "untrusted-issuer"},
+        {"aud": "other-audience"},
+        {"exp": int(time.time()) - 10},
+        {"sub": ""},
+        {"iat": int(time.time()) + 600},
+    ],
+)
+def test_http_rejects_invalid_jwt_claims(claims: dict[str, object]) -> None:
+    headers = {"Authorization": f"Bearer {_token_with_claims(**claims)}"}
+    response = TestClient(app, headers=headers).get("/v1/tools")
+    assert response.status_code == 401
