@@ -35,7 +35,7 @@ class GeminiProvider(LLMProvider):
                 from google import genai
 
                 self._client = genai.Client(api_key=self.api_key)
-            except ImportError:
+            except ImportError as e:
                 raise ProviderUnavailableError(
                     "google-genai SDK is not installed. Install via pip install google-genai."
                 ) from e
