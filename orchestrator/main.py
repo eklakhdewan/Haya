@@ -345,7 +345,7 @@ async def route_intent(payload: SupervisorInput, request: Request) -> APIRespons
         raise HTTPException(
             status_code=e.status_code,
             detail={"code": e.code.value, "message": e.message, "details": e.details},
-        )
+        ) from e
 
 
 # --- Tool Endpoints ---
@@ -374,7 +374,7 @@ async def execute_tool(
         raise HTTPException(
             status_code=e.status_code,
             detail={"code": e.code.value, "message": e.message, "details": e.details},
-        )
+        ) from e
 
 
 # --- Sandbox Endpoints ---
@@ -397,7 +397,7 @@ async def execute_sandbox(
         raise HTTPException(
             status_code=e.status_code,
             detail={"code": e.code.value, "message": e.message, "details": e.details},
-        )
+        ) from e
 
 
 class CoderTaskRequest(BaseModel):
@@ -431,7 +431,7 @@ async def run_coder_task(
         raise HTTPException(
             status_code=e.status_code,
             detail={"code": e.code.value, "message": e.message, "details": e.details},
-        )
+        ) from e
 
 
 # --- Memory Endpoints ---
@@ -563,7 +563,7 @@ async def submit_device_action(
         raise HTTPException(
             status_code=e.status_code,
             detail={"code": e.code.value, "message": e.message, "details": e.details},
-        )
+        ) from e
 
 
 class DeviceConfirmRequest(BaseModel):
