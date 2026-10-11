@@ -84,3 +84,23 @@ def test_production_rejects_default_neo4j_password() -> None:
             neo4j_password="change-me",
             database_url="postgresql+asyncpg://user:pass@localhost:5432/haya",
         )
+
+
+@pytest.mark.parametrize("environment", ["development", "staging", "production"])
+def test_mock_sandbox_provider_is_rejected_outside_testing(environment: str) -> None:
+    with pytest.raises(ValidationError, match="SANDBOX_PROVIDER=mock"):
+        make_settings(environment=environment, sandbox_provider="mock")
+
+
+def test_mock_sandbox_provider_is_allowed_only_for_testing() -> None:
+    settings = make_settings(environment="testing", sandbox_provider="mock")
+    assert settings.sandbox_provider == "mock"
+
+
+@pytest.mark.parametrize("environment", ["development", "staging", "production", "testing"])
+def test_e2b_is_default_sandbox_provider(environment: str) -> None:
+    overrides: dict[str, Any] = {"environment": environment}
+    if environment == "production":
+        overrides["database_url"] = "postgresql+asyncpg://user:pass@localhost:5432/haya"
+    settings = make_settings(**overrides)
+    assert settings.sandbox_provider == "e2b"
