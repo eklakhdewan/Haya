@@ -28,7 +28,8 @@ class GeminiProvider(LLMProvider):
         if self._client is None:
             if not self.api_key:
                 raise ProviderUnavailableError(
-                    "GOOGLE_API_KEY is not configured. Set GOOGLE_API_KEY in .env or switch to MockLLMProvider."
+                    "GOOGLE_API_KEY is not configured. Set GOOGLE_API_KEY in .env or "
+                    "switch to MockLLMProvider."
                 )
             try:
                 from google import genai
@@ -37,7 +38,7 @@ class GeminiProvider(LLMProvider):
             except ImportError:
                 raise ProviderUnavailableError(
                     "google-genai SDK is not installed. Install via pip install google-genai."
-                )
+                ) from e
         return self._client
 
     async def generate_text(
