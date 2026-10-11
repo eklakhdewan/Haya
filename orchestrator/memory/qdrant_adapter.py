@@ -50,9 +50,10 @@ class QdrantVectorAdapter(VectorStoreAdapter):
                     raise RuntimeError(
                         "Semantic memory is unavailable: embedding model could not be loaded."
                     ) from exc
-        vector = await asyncio.to_thread(
-            self._model.encode, text, normalize_embeddings=True
-        )
+            model = self._model
+        if model is None:
+            raise RuntimeError("Semantic memory is unavailable: embedding model is not loaded.")
+        vector = await asyncio.to_thread(model.encode, text, normalize_embeddings=True)
         values = vector.tolist()
         if not isinstance(values, list) or not values or not all(
             isinstance(value, (int, float)) for value in values
@@ -126,21 +127,21 @@ class QdrantVectorAdapter(VectorStoreAdapter):
         user_filter = Filter(
             must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))]
         )
-        search_result = await client.search(
+        search_result = await client.query_points(
             collection_name=self.collection_name,
-            query_vector=query_vector,
+            query=query_vector,
             query_filter=user_filter,
             limit=top_k,
             with_payload=True,
         )
         items: list[MemoryQueryItem] = []
-        for hit in search_result:
+        for hit in search_result.points:
             payload = hit.payload or {}
             items.append(
                 MemoryQueryItem(
                     memory_id=str(payload.get("memory_id", hit.id)),
                     text=str(payload.get("text", "")),
-                    score=float(hit.score),
+                    score=float(hit.score or 0.0),
                     source_turn_id=str(payload.get("source_turn_id", "")),
                 )
             )
