@@ -52,7 +52,7 @@ def test_in_memory_vector_store() -> None:
         assert results_hina[0].memory_id == rec2.id
 
         # Delete
-        del_res = await v_store.delete(rec1.id)
+        del_res = await v_store.delete(rec1.id, user_id)
         assert del_res is True
 
         # Searching again should not return deleted memory
@@ -89,7 +89,7 @@ def test_in_memory_graph_store() -> None:
         assert rels[0]["object"] == "HINA_COMPANION"
 
         # Delete relation
-        deleted = await g_store.delete_entity(rec.id)
+        deleted = await g_store.delete_entity(rec.id, user_id)
         assert deleted is True
 
         rels_after = await g_store.search_relations(user_id, "HINA_COMPANION", top_k=5)
