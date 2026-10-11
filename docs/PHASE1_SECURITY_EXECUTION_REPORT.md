@@ -1,35 +1,46 @@
 # Phase 1 Security Execution Report
 
-**Branch:** `security/phase-1-secure-foundation`  
-**Scope:** P0 secure foundation  
-**Status:** Core security controls and PostgreSQL persistence are implemented. PostgreSQL integration CI passed on 2026-10-10. Release is not ready: static-analysis remediation is in progress; provider-backed, identity, deployment, monitoring, and restore evidence remain open. See [the v1 release execution checklist](V1_RELEASE_EXECUTION_CHECKLIST.md).
+**Last reviewed:** 2026-10-11  
+**Audited main SHA:** `a3fc5bd01bd4541cbeb07f6c58081760cc53773e`  
+**Status:** Core controls and CI remediation are present; **production release gates remain open**.  
+**Current audit:** [Post-merge audit and remediation plan](POST_MERGE_AUDIT_AND_REMEDIATION_PLAN.md)  
+**Release tracker:** [v1 release checklist](V1_RELEASE_EXECUTION_CHECKLIST.md)
 
-## Controls changed
+## Implemented controls observed in source
 
-- [x] JWT validation primitive (HS256, issuer, audience, subject, expiry, issued-at)
-- [x] HTTP bearer authentication on all routes except liveness health check
-- [x] JWT authentication on realtime WebSocket
-- [x] Admin-only dashboard and trace access
-- [x] Memory namespace derived from authenticated user subject
-- [x] Device owner checks for registration, action execution, revocation, and audit access
-- [x] High-risk approval token entropy, TTL, user/device/payload binding, and one-time use
-- [x] Approved action resumes only with the exact original intent and nonce
-- [x] Production config rejects default Neo4j password and weak/default JWT secrets
-- [x] Non-test sandbox path fails closed without E2B; network-enabled execution is denied
-- [x] Regression tests added/updated for auth, ownership, approval tampering, replay, and sandbox fail-closed behavior
+- [x] JWT validation checks HS256 signature, issuer, audience, expiry, issued-at and subject.
+- [x] HTTP bearer authentication is applied by middleware except the liveness route and OPTIONS preflight.
+- [x] Admin checks protect direct tool execution, sandbox execution and autonomous coder-task endpoints.
+- [x] Memory namespace and deletion interfaces use authenticated user ownership.
+- [x] Vector and graph deletion paths include owner-scoped checks.
+- [x] Tool input is validated with JSON Schema and invalid result types are rejected.
+- [x] Transcript, code and tool payload bounds exist.
+- [x] PostgreSQL-backed device/security state and Alembic migrations are present.
+- [x] Mock sandbox is documented as a restricted test adapter, and the E2B adapter is designed to fail closed when the provider is unavailable.
+- [x] Cross-user deletion and selected authorization regressions are covered by tests.
 
-## Evidence still required
+## Current CI evidence
 
-- [x] Main-branch security regression workflow passed after persistent storage was merged (2026-10-10)
-- [x] Run full test suite plus PostgreSQL integration tests on the persistence-hardening PR (Security Regression run 38024394289 passed, 2026-10-10)
-- [ ] Pass Ruff lint/format and strict mypy on the final candidate SHA (latest recorded static-analysis run failed; follow-up commits are being revalidated)
-- [ ] Set a generated `JWT_SECRET` in the local environment
-- [ ] Configure E2B credentials securely and run a provider-backed isolated execution test
-- [ ] Verify TLS termination, secret management, and access-token issuance in deployment
-- [x] Implement PostgreSQL-backed device/revocation/approval/nonce/completion/audit storage and Alembic migration
-- [x] PostgreSQL migration, locking/concurrency test cases, and restart-persistence test cases passed in CI (run 38024394289, 2026-10-10)
-- [ ] Verify deployment smoke tests with unauthenticated, ordinary-user, and admin requests
+- [x] [Static Analysis and Security Scanning passed on the audited main SHA](https://github.com/eklakhdewan/Haya/actions/runs/38112391755).
+- [x] [Security Regression passed on the audited main SHA](https://github.com/eklakhdewan/Haya/actions/runs/38112391747).
 
-## Important limitations
+The static workflow includes Ruff lint/format, strict mypy, pip-audit, Bandit, Gitleaks and CodeQL. The security regression workflow runs compilation, Alembic migration checks and pytest with an ephemeral PostgreSQL 16 service.
 
-The GitHub Actions workflow executed against an ephemeral PostgreSQL 16 service. Alembic migration, Python compilation, and the full pytest suite including PostgreSQL integration tests passed on 2026-10-10 (run 38024394289). This verifies the repository's CI test scope; it does not establish production deployment readiness. The static-analysis workflow failed at commit `b1b3caf` (Ruff, mypy, Bandit); secret scanning, dependency audit, and CodeQL passed in that run. Later commits address two reported mypy errors and change the API bind default, but must be revalidated. Bulk Ruff remediation and the mock sandbox's in-process `exec()` design remain open. External E2B validation, production identity/token issuance, TLS/secret management, provider-backed smoke tests, monitoring, backup/restore, and deployment verification remain open. Phase 1 is not production-complete until these gates have evidence.
+## Remaining release-blocking work
+
+- [ ] Enforce and test that mock sandbox execution cannot be selected in staging/production; validate real E2B isolation, timeouts, network denial, cleanup and provider failures.
+- [ ] Wire Qdrant and Neo4j into the application lifecycle for durable memory.
+- [ ] Replace Qdrant's constant placeholder vectors with a real embedding provider/interface.
+- [ ] Test persistent memory across restarts, per-user query/delete isolation, adapter failures and recovery.
+- [ ] Complete a route and WebSocket authorization matrix including anonymous, regular-user, cross-user and admin cases.
+- [ ] Verify trusted production token issuance, signing-secret rotation, TLS, CORS/proxy behavior and query-token log redaction.
+- [ ] Replace in-memory memory audit events with durable storage and implement cross-store reconciliation for partial failures.
+- [ ] Define and test rate limits, concurrency controls, provider budgets and WebSocket resource limits.
+- [ ] Verify production-like migration/upgrade, monitoring, backups, restore and rollback.
+- [ ] Run provider-backed staging smoke tests and record evidence against the exact release SHA.
+
+## Limitations
+
+The current CI result is evidence that the configured automated checks passed on the audited commit. It does not establish production readiness. CI uses ephemeral infrastructure and does not itself prove live provider behavior, deployed identity configuration, TLS, monitoring, backup restoration or production failure recovery. Source inspection also found that the application currently constructs in-memory vector/graph stores and the Qdrant adapter uses placeholder vectors; durable semantic memory must not be claimed complete until those paths are wired and tested.
+
+Phase 1 remains incomplete until the release-blocking checklist items have verifiable evidence.
