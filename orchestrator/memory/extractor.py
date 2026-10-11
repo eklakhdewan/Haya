@@ -52,79 +52,115 @@ class MemoryExtractor:
         self.llm_provider = llm_provider
 
     def _rule_based_extract(self, text: str, turn_id: str) -> list[MemoryCandidate]:
-        """Fast offline rule-based extraction for deterministic test environments."""
+        """Fast offline rule-based extraction with bounded, linear string parsing."""
         candidates: list[MemoryCandidate] = []
-        lower = text.lower()
+        # Keep rule-based processing bounded even if a caller bypasses API limits.
+        lower = text[:10_000].lower()
         now = datetime.now(UTC)
 
-        # Preference patterns
-        pref_match = re.search(r"prefer\s+([a-zA-Z0-9\s]+?)(?:\s+over|\s+instead|\.|$)", lower)
-        if pref_match:
-            val = pref_match.group(1).strip()
-            candidates.append(
-                MemoryCandidate(
-                    entity_type=MemoryEntityType.PREFERENCE,
-                    subject="User",
-                    predicate="PREFERS",
-                    object=val,
-                    confidence=0.95,
-                    source_turn_id=turn_id,
-                    timestamp=now,
-                    operation=MemoryOperation.CREATE,
-                )
-            )
+        def bounded_value(value: str, limit: int = 100) -> str:
+            return " ".join(value[:limit].split()).strip(" .,:;")
 
-        # Favorite patterns
-        fav_match = re.search(r"favorite\s+(\w+)\s+is\s+([a-zA-Z0-9\s]+?)(?:\.|$)", lower)
-        if fav_match:
-            concept = fav_match.group(1).strip()
-            val = fav_match.group(2).strip()
-            candidates.append(
-                MemoryCandidate(
-                    entity_type=MemoryEntityType.PREFERENCE,
-                    subject="User",
-                    predicate=f"FAVORITE_{concept.upper()}",
-                    object=val,
-                    confidence=0.96,
-                    source_turn_id=turn_id,
-                    timestamp=now,
-                    operation=MemoryOperation.CREATE,
+        # Preference patterns: parse delimiters directly instead of backtracking regexes.
+        prefer_at = lower.find("prefer ")
+        if prefer_at >= 0:
+            value_start = prefer_at + len("prefer ")
+            tail = lower[value_start:]
+            stop = len(tail)
+            for delimiter in (" over ", " instead", ".", "\\n"):
+                position = tail.find(delimiter)
+                if position >= 0:
+                    stop = min(stop, position)
+            val = bounded_value(tail[:stop])
+            if val:
+                candidates.append(
+                    MemoryCandidate(
+                        entity_type=MemoryEntityType.PREFERENCE,
+                        subject="User",
+                        predicate="PREFERS",
+                        object=val,
+                        confidence=0.95,
+                        source_turn_id=turn_id,
+                        timestamp=now,
+                        operation=MemoryOperation.CREATE,
+                    )
                 )
-            )
 
-        # Project patterns
-        proj_match = re.search(r"(?:working on|building)\s+(?:the\s+)?([a-zA-Z0-9\-_]+)", lower)
-        if proj_match:
-            proj = proj_match.group(1).strip().upper()
-            candidates.append(
-                MemoryCandidate(
-                    entity_type=MemoryEntityType.PROJECT,
-                    subject="User",
-                    predicate="WORKS_ON",
-                    object=proj,
-                    confidence=0.98,
-                    source_turn_id=turn_id,
-                    timestamp=now,
-                    operation=MemoryOperation.CREATE,
-                )
-            )
+        # Favorite patterns: "favorite <concept> is <value>".
+        favorite_at = lower.find("favorite ")
+        if favorite_at >= 0:
+            concept_start = favorite_at + len("favorite ")
+            is_at = lower.find(" is ", concept_start)
+            if is_at >= 0:
+                concept = bounded_value(lower[concept_start:is_at], 40)
+                value_start = is_at + len(" is ")
+                tail = lower[value_start:]
+                stop = tail.find(".")
+                if stop < 0:
+                    stop = len(tail)
+                val = bounded_value(tail[:stop])
+                if concept and val and concept.replace("_", "").isalnum():
+                    candidates.append(
+                        MemoryCandidate(
+                            entity_type=MemoryEntityType.PREFERENCE,
+                            subject="User",
+                            predicate=f"FAVORITE_{concept.upper()}",
+                            object=val,
+                            confidence=0.96,
+                            source_turn_id=turn_id,
+                            timestamp=now,
+                            operation=MemoryOperation.CREATE,
+                        )
+                    )
 
-        # Forget patterns
-        forget_match = re.search(r"forget\s+(?:my\s+)?([a-zA-Z0-9\s]+?)(?:\.|$)", lower)
-        if forget_match:
-            target = forget_match.group(1).strip()
-            candidates.append(
-                MemoryCandidate(
-                    entity_type=MemoryEntityType.PREFERENCE,
-                    subject="User",
-                    predicate="FORGET",
-                    object=target,
-                    confidence=0.99,
-                    source_turn_id=turn_id,
-                    timestamp=now,
-                    operation=MemoryOperation.DELETE,
+        # Project patterns: "working on <name>" or "building <name>".
+        for marker in ("working on ", "building "):
+            project_at = lower.find(marker)
+            if project_at >= 0:
+                value_start = project_at + len(marker)
+                if lower[value_start:].startswith("the "):
+                    value_start += len("the ")
+                raw = lower[value_start:].split(maxsplit=1)[0] if lower[value_start:].split() else ""
+                project = bounded_value(raw, 100).upper()
+                if project and all(char.isalnum() or char in "-_" for char in project):
+                    candidates.append(
+                        MemoryCandidate(
+                            entity_type=MemoryEntityType.PROJECT,
+                            subject="User",
+                            predicate="WORKS_ON",
+                            object=project,
+                            confidence=0.98,
+                            source_turn_id=turn_id,
+                            timestamp=now,
+                            operation=MemoryOperation.CREATE,
+                        )
+                    )
+                break
+
+        # Forget patterns: "forget <target>" / "forget my <target>".
+        forget_at = lower.find("forget ")
+        if forget_at >= 0:
+            value_start = forget_at + len("forget ")
+            if lower[value_start:].startswith("my "):
+                value_start += len("my ")
+            tail = lower[value_start:]
+            stop = tail.find(".")
+            if stop < 0:
+                stop = len(tail)
+            target = bounded_value(tail[:stop])
+            if target:
+                candidates.append(
+                    MemoryCandidate(
+                        entity_type=MemoryEntityType.PREFERENCE,
+                        subject="User",
+                        predicate="FORGET",
+                        object=target,
+                        confidence=0.99,
+                        source_turn_id=turn_id,
+                        timestamp=now,
+                        operation=MemoryOperation.DELETE,
+                    )
                 )
-            )
 
         return candidates
 
