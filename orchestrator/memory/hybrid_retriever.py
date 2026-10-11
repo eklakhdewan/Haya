@@ -1,4 +1,4 @@
-"""Concurrent Hybrid Retriever executing Vector and Knowledge Graph queries with strict deadlines."""
+"""Run vector and knowledge-graph queries concurrently with strict deadlines."""
 
 import asyncio
 from typing import Any
@@ -9,7 +9,7 @@ from orchestrator.memory.base import GraphStoreAdapter, VectorStoreAdapter
 
 
 class HybridRetriever:
-    """Executes parallel vector and graph queries and fuses ranking via Reciprocal Rank Fusion (RRF)."""
+    """Run vector and graph queries in parallel and fuse ranks using RRF."""
 
     def __init__(
         self,
