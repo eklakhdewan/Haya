@@ -1,0 +1,84 @@
+orchestrator\agents\coder.py:16:101: E501 Line too long (116 > 100)
+orchestrator\agents\critic.py:9:101: E501 Line too long (108 > 100)
+orchestrator\agents\supervisor.py:10:101: E501 Line too long (106 > 100)
+orchestrator\agents\supervisor.py:13:101: E501 Line too long (120 > 100)
+orchestrator\agents\supervisor.py:14:101: E501 Line too long (113 > 100)
+orchestrator\agents\supervisor.py:16:101: E501 Line too long (110 > 100)
+orchestrator\agents\supervisor.py:19:101: E501 Line too long (133 > 100)
+orchestrator\agents\supervisor.py:21:101: E501 Line too long (123 > 100)
+orchestrator\agents\supervisor.py:57:101: E501 Line too long (141 > 100)
+orchestrator\core\auth.py:51:56: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+orchestrator\core\config.py:10:7: UP042 Class Environment inherits from both `str` and `enum.Enum`
+orchestrator\core\errors.py:7:7: UP042 Class ErrorCode inherits from both `str` and `enum.Enum`
+orchestrator\core\models.py:12:7: UP042 Class RouteType inherits from both `str` and `enum.Enum`
+orchestrator\core\models.py:20:7: UP042 Class RiskLevel inherits from both `str` and `enum.Enum`
+orchestrator\core\models.py:26:7: UP042 Class MemoryOperation inherits from both `str` and `enum.Enum`
+orchestrator\core\models.py:33:7: UP042 Class MemoryEntityType inherits from both `str` and `enum.Enum`
+orchestrator\core\models.py:43:7: UP042 Class IntentType inherits from both `str` and `enum.Enum`
+orchestrator\core\models.py:160:30: UP046 Generic class `APIResponse` uses `Generic` subclass instead of type parameters
+orchestrator\dashboard.py:11:101: E501 Line too long (152 > 100)
+orchestrator\dashboard.py:306:101: E501 Line too long (109 > 100)
+orchestrator\dashboard.py:342:101: E501 Line too long (123 > 100)
+orchestrator\dashboard.py:350:101: E501 Line too long (110 > 100)
+orchestrator\dashboard.py:378:101: E501 Line too long (107 > 100)
+orchestrator\dashboard.py:405:101: E501 Line too long (120 > 100)
+orchestrator\dashboard.py:406:101: E501 Line too long (172 > 100)
+orchestrator\dashboard.py:420:101: E501 Line too long (139 > 100)
+orchestrator\dashboard.py:446:101: E501 Line too long (125 > 100)
+orchestrator\dashboard.py:467:101: E501 Line too long (124 > 100)
+orchestrator\dashboard.py:492:101: E501 Line too long (124 > 100)
+orchestrator\dashboard.py:504:101: E501 Line too long (127 > 100)
+orchestrator\dashboard.py:535:101: E501 Line too long (136 > 100)
+orchestrator\dashboard.py:548:101: E501 Line too long (137 > 100)
+orchestrator\dashboard.py:550:101: E501 Line too long (111 > 100)
+orchestrator\dashboard.py:554:101: E501 Line too long (115 > 100)
+orchestrator\dashboard.py:570:101: E501 Line too long (152 > 100)
+orchestrator\dashboard.py:579:101: E501 Line too long (116 > 100)
+orchestrator\dashboard.py:583:101: E501 Line too long (121 > 100)
+orchestrator\dashboard.py:600:101: E501 Line too long (152 > 100)
+orchestrator\dashboard.py:604:101: E501 Line too long (139 > 100)
+orchestrator\dashboard.py:612:101: E501 Line too long (112 > 100)
+orchestrator\dashboard.py:618:101: E501 Line too long (121 > 100)
+orchestrator\dashboard.py:634:101: E501 Line too long (176 > 100)
+orchestrator\dashboard.py:647:101: E501 Line too long (182 > 100)
+orchestrator\dashboard.py:653:101: E501 Line too long (113 > 100)
+orchestrator\dashboard.py:661:101: E501 Line too long (121 > 100)
+orchestrator\devices\validator.py:41:13: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+orchestrator\devices\validator.py:54:101: E501 Line too long (110 > 100)
+orchestrator\gateway\events.py:11:7: UP042 Class RealtimeEventType inherits from both `str` and `enum.Enum`
+orchestrator\gateway\events.py:25:7: UP042 Class SessionState inherits from both `str` and `enum.Enum`
+orchestrator\gateway\tts_adapter.py:23:101: E501 Line too long (101 > 100)
+orchestrator\main.py:345:9: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+orchestrator\main.py:370:9: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+orchestrator\main.py:388:9: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+orchestrator\main.py:419:9: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+orchestrator\main.py:545:9: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+orchestrator\memory\hybrid_retriever.py:1:101: E501 Line too long (101 > 100)
+orchestrator\memory\hybrid_retriever.py:12:101: E501 Line too long (104 > 100)
+orchestrator\memory\mock_memory.py:30:13: B007 Loop control variable `mem_id` not used within loop body
+orchestrator\memory\mock_memory.py:70:101: E501 Line too long (120 > 100)
+orchestrator\memory\neo4j_adapter.py:33:17: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+orchestrator\memory\neo4j_adapter.py:96:101: E501 Line too long (128 > 100)
+orchestrator\memory\qdrant_adapter.py:10:101: E501 Line too long (104 > 100)
+orchestrator\memory\qdrant_adapter.py:30:17: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+orchestrator\memory\qdrant_adapter.py:38:101: E501 Line too long (102 > 100)
+orchestrator\providers\gemini.py:31:101: E501 Line too long (112 > 100)
+orchestrator\providers\gemini.py:38:17: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+orchestrator\providers\mock_llm.py:23:101: E501 Line too long (145 > 100)
+orchestrator\providers\mock_llm.py:33:101: E501 Line too long (108 > 100)
+orchestrator\providers\mock_llm.py:43:101: E501 Line too long (107 > 100)
+orchestrator\providers\mock_llm.py:53:101: E501 Line too long (101 > 100)
+orchestrator\providers\mock_llm.py:102:13: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+orchestrator\providers\mock_llm.py:103:101: E501 Line too long (105 > 100)
+orchestrator\sandbox\static_checker.py:14:101: E501 Line too long (102 > 100)
+orchestrator\sandbox\static_checker.py:71:101: E501 Line too long (110 > 100)
+orchestrator\tools\builtin.py:82:13: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+tests\security\test_security_matrix.py:30:101: E501 Line too long (101 > 100)
+tests\security\test_security_matrix.py:68:101: E501 Line too long (104 > 100)
+tests\security\test_security_matrix.py:146:101: E501 Line too long (111 > 100)
+tests\security\test_security_matrix.py:188:101: E501 Line too long (109 > 100)
+tests\test_coder_agent.py:19:101: E501 Line too long (106 > 100)
+tests\test_hybrid_retriever.py:48:101: E501 Line too long (104 > 100)
+tests\test_router_golden.py:62:13: B007 Loop control variable `i` not used within loop body
+Found 82 errors.
+12 unsafe fixes available with `--fix --unsafe-fixes`.

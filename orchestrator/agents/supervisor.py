@@ -71,8 +71,10 @@ class Supervisor:
 
         # 3. Policy override: Ensure device actions like SMS or calls always require confirmation
         lower_text = input_data.text.lower()
-        if output.route == RouteType.DEVICE:
-            if any(k in lower_text for k in ["sms", "text", "call", "dial", "setting", "system"]):
-                output.requires_confirmation = True
+        if output.route == RouteType.DEVICE and any(
+            keyword in lower_text
+            for keyword in ("sms", "text", "call", "dial", "setting", "system")
+        ):
+            output.requires_confirmation = True
 
         return output
