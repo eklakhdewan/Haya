@@ -59,7 +59,7 @@ def test_supervisor_loop_capping() -> None:
         supervisor = Supervisor(llm_provider=provider, max_loops_per_turn=3)
         session_id = "test-session-loop"
 
-        for i in range(3):
+        for _i in range(3):
             inp = SupervisorInput(
                 session_id=session_id,
                 user_id="user-1",
