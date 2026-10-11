@@ -1,6 +1,7 @@
 """HTTP and WebSocket authentication boundary regression tests."""
 
 import time
+from typing import Any
 
 import jwt
 import pytest
@@ -58,7 +59,7 @@ def test_websocket_rejects_user_identity_mismatch() -> None:
 
 def _token_with_claims(**overrides: object) -> str:
     now = int(time.time())
-    claims: dict[str, object] = {
+    claims: dict[str, Any] = {
         "sub": "auth-test-user",
         "role": "user",
         "iss": get_settings().jwt_issuer,
@@ -80,7 +81,7 @@ def _token_with_claims(**overrides: object) -> str:
         {"iat": int(time.time()) + 600},
     ],
 )
-def test_http_rejects_invalid_jwt_claims(claims: dict[str, object]) -> None:
+def test_http_rejects_invalid_jwt_claims(claims: dict[str, Any]) -> None:
     headers = {"Authorization": f"Bearer {_token_with_claims(**claims)}"}
     response = TestClient(app, headers=headers).get("/v1/tools")
     assert response.status_code == 401
