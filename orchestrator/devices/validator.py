@@ -38,7 +38,7 @@ class MobileIntentValidator:
         try:
             jsonschema.validate(instance=intent_dict, schema=schema)
         except jsonschema.ValidationError as e:
-            raise InvalidSchemaError(f"Mobile intent failed schema validation: {e.message}")
+            raise InvalidSchemaError(\n                f"Mobile intent failed schema validation: {e.message}"\n            ) from e
 
     def mark_completed(self, intent_id: str) -> None:
         """Mark an intent as executed so it cannot be re-executed."""
@@ -51,7 +51,7 @@ class MobileIntentValidator:
         # 1. Check expiration
         if intent.expires_at <= now:
             raise PolicyDeniedError(
-                f"Mobile intent '{intent.intent_id}' has expired (expires_at={intent.expires_at}, now={now})."
+                f"Mobile intent '{intent.intent_id}' has expired "\n                f"(expires_at={intent.expires_at}, now={now})."
             )
 
         # 2. Check if intent was already executed
