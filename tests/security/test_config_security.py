@@ -93,7 +93,6 @@ def test_mock_sandbox_provider_is_rejected_outside_testing(environment: str) -> 
         make_settings(environment=environment, sandbox_provider="mock")
 
 
-
 def test_staging_rejects_missing_e2b_credentials() -> None:
     with pytest.raises(ValidationError, match="E2B_API_KEY"):
         make_settings(
