@@ -102,7 +102,8 @@ class MockLLMProvider(LLMProvider):
         # Generic default initialization if possible
         try:
             return response_schema.model_validate({})
-        except Exception:
+        except Exception as err:
             raise NotImplementedError(
-                f"MockLLMProvider requires pre-registered handler for schema: {response_schema.__name__}"
-            )
+                "MockLLMProvider requires pre-registered handler for schema: "
+                f"{response_schema.__name__}"
+            ) from err
